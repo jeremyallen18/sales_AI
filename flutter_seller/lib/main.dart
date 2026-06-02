@@ -1,0 +1,142 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/cart_provider.dart';
+import 'providers/products_provider.dart';
+import 'providers/sales_provider.dart';
+import 'screens/login_screen.dart';
+import 'screens/home_shell.dart';
+import 'services/settings_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SettingsService.init();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: AppColors.navyBg,
+    statusBarIconBrightness: Brightness.light,
+  ));
+  runApp(const SellerApp());
+}
+
+class AppColors {
+  static const Color navyBg = Color(0xFF0B1D3A);
+  static const Color navyCard = Color(0xFF122444);
+  static const Color navyLight = Color(0xFF1A3360);
+  static const Color accent = Color(0xFF2979FF);
+  static const Color cartAmber = Color(0xFFFFD54F);
+  static const Color catHeader = Color(0xFF90CAF9);
+  static const Color textSec = Color(0xFF8AADCF);
+  static const Color divider = Color(0xFF1E3A5F);
+  static const Color success = Color(0xFF4CAF50);
+  static const Color danger = Color(0xFFE53935);
+}
+
+class SellerApp extends StatelessWidget {
+  const SellerApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()..tryAutoLogin()),
+        ChangeNotifierProvider(create: (_) => ProductsProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => SalesProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Sales AI — Vendedor',
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(),
+        home: const _AuthGate(),
+      ),
+    );
+  }
+
+  ThemeData _buildTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.navyBg,
+      colorScheme: const ColorScheme.dark(
+        surface: AppColors.navyBg,
+        primary: AppColors.accent,
+        secondary: AppColors.cartAmber,
+        onPrimary: Colors.white,
+        onSurface: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.navyBg,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2,
+        ),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.navyCard,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.divider,
+        thickness: 1,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.navyCard,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.navyLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.navyLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.accent, width: 2),
+        ),
+        labelStyle: const TextStyle(color: AppColors.textSec),
+        hintStyle: const TextStyle(color: AppColors.textSec),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: AppColors.catHeader),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: AppColors.navyLight,
+        contentTextStyle: TextStyle(color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.navyCard,
+        selectedItemColor: AppColors.accent,
+        unselectedItemColor: AppColors.textSec,
+      ),
+    );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    return auth.loggedIn ? const HomeShell() : const LoginScreen();
+  }
+}

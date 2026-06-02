@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#1a237e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>VentaIA — Tienda</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/store.css') }}">
+</head>
+<body>
+
+<!-- ─── Header ─── -->
+<header class="store-header">
+  <div class="store-logo">Venta<span>IA</span></div>
+  <button class="cart-btn" onclick="toggleCart()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+    </svg>
+    <span class="cart-badge" id="cartBadge"></span>
+  </button>
+</header>
+
+<!-- ─── Search ─── -->
+<div class="search-section">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" placeholder="Buscar productos..." id="searchInput" oninput="filterProducts()">
+  </div>
+</div>
+
+<!-- ─── Categories ─── -->
+<div class="categories" id="categoriesBar"></div>
+
+<!-- ─── Products ─── -->
+<section class="products-section">
+  <div id="productsContainer">
+    <div class="loading"><div class="spinner"></div>Cargando productos...</div>
+  </div>
+</section>
+
+<!-- ─── Cart Overlay + Drawer ─── -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-handle"></div>
+  <div class="cart-header">
+    <h2>Mi Carrito</h2>
+    <button class="cart-clear" onclick="clearCart()">Vaciar</button>
+  </div>
+  <div class="cart-body" id="cartBody">
+    <div class="cart-empty" id="cartEmpty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+      </svg>
+      <div>Tu carrito esta vacio</div>
+    </div>
+  </div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <input type="text" class="cart-client-input" id="clientNameInput" placeholder="Tu nombre (opcional)">
+    <div class="cart-summary">
+      <span class="cart-summary-label">Total a pagar</span>
+      <span class="cart-summary-total" id="cartTotal">$0.00</span>
+    </div>
+    <button class="checkout-btn" id="checkoutBtn" onclick="checkout()">
+      Realizar Pedido
+    </button>
+  </div>
+</div>
+
+<!-- ─── Success Modal ─── -->
+<div class="modal-overlay" id="successModal">
+  <div class="success-modal">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="success-title">Pedido Registrado</div>
+    <div class="success-sub">Tu compra ha sido procesada correctamente</div>
+    <div class="success-order" id="successOrderId">#0001</div>
+    <button class="success-btn" onclick="closeSuccessModal()">Seguir Comprando</button>
+  </div>
+</div>
+
+<!-- ─── Toast ─── -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+let allProducts = [];
+let cart = [];
+let activeCategory = '';
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', loadProducts);
+
+async function loadProducts() {
+  try {
+    const res = await fetch(`${API}/inventory/products`);
+    allProducts = await res.json();
+    allProducts = allProducts.filter(p => p.stock > 0);
+    renderCategories();
+    renderProducts();
+  } catch (e) {
+    document.getElementById('productsContainer').innerHTML =
+      '<div class="loading">Error al cargar productos</div>';
+  }
+}
+
+// ─── Categories ───
+function renderCategories() {
+  const cats = [...new Set(allProducts.map(p => p.category))].sort();
+  const bar = document.getElementById('categoriesBar');
+  bar.innerHTML = `<div class="cat-chip active" onclick="selectCategory('')">Todos</div>` +
+    cats.map(c => `<div class="cat-chip" onclick="selectCategory('${c}')">${c}</div>`).join('');
+}
+
+function selectCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.cat-chip').forEach(el => {
+    el.classList.toggle('active',
+      (cat === '' && el.textContent === 'Todos') || el.textContent === cat);
+  });
+  filterProducts();
+}
+
+// ─── Filter & Render Products ───
+function filterProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allProducts.filter(p => {
+    const matchCat = !activeCategory || p.category === activeCategory;
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+    return matchCat && matchSearch;
+  });
+  renderProducts(filtered);
+}
+
+function renderProducts(list) {
+  list = list || allProducts;
+  const container = document.getElementById('productsContainer');
+  if (!list.length) {
+    container.innerHTML = '<div class="loading">No se encontraron productos</div>';
+    return;
+  }
+  container.innerHTML = `<div class="products-grid">${list.map(productCard).join('')}</div>`;
+}
+
+function productCard(p) {
+  const inCart = cart.find(c => c.id === p.id);
+  const available = p.stock - (inCart ? inCart.qty : 0);
+  const imgHtml = p.image_url
+    ? `<img class="product-img" src="${p.image_url}" alt="${esc(p.name)}" loading="lazy">`
+    : `<div class="product-img-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+      </svg></div>`;
+  const stockClass = available <= 0 ? 'out' : available <= 5 ? 'low' : '';
+  const stockText = available <= 0 ? 'Agotado' : `${available} disponible${available !== 1 ? 's' : ''}`;
+  return `
+    <div class="product-card">
+      ${imgHtml}
+      <div class="product-info">
+        <div class="product-name">${esc(p.name)}</div>
+        <div class="product-category">${esc(p.category)}</div>
+        <div class="product-price">$${p.price.toFixed(2)}</div>
+        <div class="product-stock ${stockClass}">${stockText}</div>
+      </div>
+      <button class="add-btn ${available <= 0 ? 'disabled' : ''}" onclick="addToCart(${p.id})" title="Agregar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+    </div>`;
+}
+
+// ─── Cart Logic ───
+function addToCart(pid) {
+  const p = allProducts.find(x => x.id === pid);
+  if (!p) return;
+  const existing = cart.find(c => c.id === pid);
+  const currentQty = existing ? existing.qty : 0;
+  if (currentQty >= p.stock) {
+    showToast('Sin stock disponible');
+    return;
+  }
+  if (existing) {
+    existing.qty++;
+  } else {
+    cart.push({ id: p.id, name: p.name, price: p.price, stock: p.stock, image_url: p.image_url, qty: 1 });
+  }
+  updateCartUI();
+  renderProducts(getFilteredList());
+  showToast(`${p.name} agregado`);
+}
+
+function changeQty(pid, delta) {
+  const item = cart.find(c => c.id === pid);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) {
+    cart = cart.filter(c => c.id !== pid);
+  } else if (item.qty > item.stock) {
+    item.qty = item.stock;
+    showToast('Stock maximo alcanzado');
+  }
+  updateCartUI();
+  renderProducts(getFilteredList());
+}
+
+function clearCart() {
+  cart = [];
+  updateCartUI();
+  renderProducts(getFilteredList());
+}
+
+function getFilteredList() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return allProducts.filter(p => {
+    const matchCat = !activeCategory || p.category === activeCategory;
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+    return matchCat && matchSearch;
+  });
+}
+
+function updateCartUI() {
+  const badge = document.getElementById('cartBadge');
+  const body = document.getElementById('cartBody');
+  const footer = document.getElementById('cartFooter');
+  const empty = document.getElementById('cartEmpty');
+  const totalEl = document.getElementById('cartTotal');
+  const totalQty = cart.reduce((s, c) => s + c.qty, 0);
+  const totalPrice = cart.reduce((s, c) => s + c.qty * c.price, 0);
+
+  badge.textContent = totalQty || '';
+
+  if (!cart.length) {
+    body.innerHTML = `<div class="cart-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+      </svg><div>Tu carrito esta vacio</div></div>`;
+    footer.style.display = 'none';
+    return;
+  }
+
+  footer.style.display = 'block';
+  totalEl.textContent = `$${totalPrice.toFixed(2)}`;
+  body.innerHTML = cart.map(c => {
+    const imgSrc = c.image_url || '';
+    const imgHtml = imgSrc
+      ? `<img class="cart-item-img" src="${imgSrc}" alt="${esc(c.name)}">`
+      : `<div class="cart-item-img" style="background:linear-gradient(135deg,#e8eaf6,#c5cae9)"></div>`;
+    return `
+    <div class="cart-item">
+      ${imgHtml}
+      <div class="cart-item-info">
+        <div class="cart-item-name">${esc(c.name)}</div>
+        <div class="cart-item-price">$${c.price.toFixed(2)} c/u</div>
+      </div>
+      <div class="cart-item-qty">
+        <button class="qty-btn" onclick="changeQty(${c.id},-1)">&minus;</button>
+        <div class="qty-value">${c.qty}</div>
+        <button class="qty-btn" onclick="changeQty(${c.id},1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Cart Drawer Toggle ───
+function toggleCart() {
+  const overlay = document.getElementById('cartOverlay');
+  const drawer = document.getElementById('cartDrawer');
+  const isOpen = overlay.classList.contains('open');
+  overlay.classList.toggle('open', !isOpen);
+  drawer.classList.toggle('open', !isOpen);
+  document.body.style.overflow = isOpen ? '' : 'hidden';
+}
+
+// ─── Checkout ───
+async function checkout() {
+  if (!cart.length) return;
+  const btn = document.getElementById('checkoutBtn');
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+
+  const clientName = document.getElementById('clientNameInput').value.trim();
+  const items = cart.map(c => ({ product_id: c.id, quantity: c.qty }));
+
+  try {
+    const res = await fetch(`${API}/sales/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, client_name: clientName })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Error al procesar');
+    }
+
+    const sale = await res.json();
+    cart = [];
+    updateCartUI();
+    toggleCart();
+
+    document.getElementById('successOrderId').textContent = `#${String(sale.id).padStart(4, '0')}`;
+    document.getElementById('successModal').classList.add('open');
+
+    await loadProducts();
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Realizar Pedido';
+  }
+}
+
+function closeSuccessModal() {
+  document.getElementById('successModal').classList.remove('open');
+}
+
+// ─── Helpers ───
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

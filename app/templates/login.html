@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar Sesión — VentaIA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+<div class="card">
+  <div class="logo">VentaIA</div>
+  <div class="sub">Sistema de Ventas con Inteligencia Artificial</div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}<div class="err">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  <form method="POST">
+    <label>Usuario</label>
+    <input type="text" name="username" placeholder="admin" autocomplete="off">
+    <label>Contraseña</label>
+    <input type="password" name="password" placeholder="••••••••">
+    <button type="submit">Ingresar al sistema</button>
+  </form>
+  <div class="hint">Demo: admin / admin123</div>
+</div>
+</body>
+</html>

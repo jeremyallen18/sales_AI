@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\jerem\\\\Documents\\\\sales_ai_app\\\\flutter_app\\\\lib\\\\config\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\jerem\\\\Documents\\\\sales_ai_app\\\\flutter_app\\\\lib\\\\models\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\jerem\\\\Documents\\\\sales_ai_app\\\\flutter_app\\\\lib\\\\providers\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\jerem\\\\Documents\\\\sales_ai_app\\\\flutter_app\\\\lib\\\\services\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\jerem\\\\Documents\\\\sales_ai_app\\\\flutter_app\\\\lib\\\\screens\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\jerem\\\\Documents\\\\sales_ai_app\\\\flutter_app\\\\lib\\\\widgets\")"
+    ]
+  }
+}

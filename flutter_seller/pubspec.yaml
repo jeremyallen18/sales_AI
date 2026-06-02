@@ -1,0 +1,26 @@
+name: sales_ai_seller
+description: App móvil para vendedores — Sales AI App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  http: ^1.2.1
+  cached_network_image: ^3.3.1
+  shared_preferences: ^2.3.2
+  fl_chart: ^0.70.2
+  intl: ^0.20.2
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

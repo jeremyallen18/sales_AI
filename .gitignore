@@ -1,0 +1,41 @@
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Secretos — NUNCA subir al repositorio
+.env
+
+# Base de datos local
+instance/app.db
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Flutter / Dart (ambas apps)
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+*.iml
+.idea/
+
+# Power BI (archivos pesados / temporales)
+*.pbip
+TempState/
+
+# Carpeta basura generada por error
+{app/
+\{app/

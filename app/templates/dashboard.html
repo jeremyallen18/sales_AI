@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VentaIA -- Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+<div class="app">
+<!-- ─── Sidebar ─── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">VentaIA</div>
+    <div class="logo-sub">Sistema Inteligente</div>
+  </div>
+  <nav>
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showPanel('dashboard')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>Dashboard
+    </div>
+    <div class="nav-item" onclick="showPanel('ventas')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+      </svg>Punto de Venta
+    </div>
+    <div class="nav-item" onclick="showPanel('historial')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>Historial
+    </div>
+    <div class="nav-section">Gestion</div>
+    <div class="nav-item" onclick="showPanel('inventario')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+      </svg>Inventario
+    </div>
+    <div class="nav-section">IA</div>
+    <div class="nav-item" onclick="showPanel('chatbot')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+      </svg>Asistente IA
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="avatar">A</div>
+      <div><div class="user-name">Admin</div><div class="user-role">Administrador</div></div>
+    </div>
+    <a href="/logout" class="logout-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>Cerrar sesion
+    </a>
+  </div>
+</aside>
+
+<!-- ─── Main Content ─── -->
+<main class="main">
+  <header class="topbar">
+    <div class="page-title" id="pageTitle">Dashboard</div>
+    <div class="topbar-actions">
+      <span class="badge badge-warn" id="lowStockBadge" style="display:none">Stock bajo</span>
+      <span class="badge badge-ok" id="statusBadge">En linea</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- ──────────── PANEL: Dashboard ──────────── -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="panel-grid">
+        <div class="stat-card">
+          <div class="stat-icon revenue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          </div>
+          <div class="stat-label">Ingresos Totales</div>
+          <div class="stat-value" id="s-ingresos">$0</div>
+          <div class="stat-sub">Acumulado historico</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon sales">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="stat-label">Ventas Registradas</div>
+          <div class="stat-value" id="s-ventas">0</div>
+          <div class="stat-sub">Transacciones totales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
+          <div class="stat-label">Productos en Sistema</div>
+          <div class="stat-value" id="s-productos">0</div>
+          <div class="stat-sub">En inventario activo</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="stat-label">Stock Bajo</div>
+          <div class="stat-value" id="s-bajo">0</div>
+          <div class="stat-sub">Requieren reabasto</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Ingresos -- Ultimos 30 dias</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartIngresos"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Top Productos</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartTop"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Ultimas Ventas</div>
+          <button class="btn btn-ghost btn-sm" onclick="showPanel('ventas')">+ Nueva venta</button>
+        </div>
+        <table id="tbl-recientes">
+          <thead><tr><th>#</th><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Recibo</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ──────────── PANEL: Punto de Venta ──────────── -->
+    <div class="panel" id="panel-ventas">
+      <div class="pos-grid">
+        <div>
+          <div class="search-bar">
+            <input class="search-input" placeholder="Buscar producto..." id="posSearch" oninput="filterPosProducts()">
+            <select id="posCategory" class="search-input" onchange="filterPosProducts()" style="flex:0;width:140px">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="products-grid" id="posProductsGrid"></div>
+        </div>
+        <div class="cart-panel">
+          <div class="cart-title">Carrito de Venta</div>
+          <div class="cart-items" id="cartItems">
+            <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px">
+              Selecciona productos para agregar
+            </div>
+          </div>
+          <div class="cart-footer">
+            <div class="cart-client">
+              <label>Cliente</label>
+              <input type="text" id="clientName" placeholder="Nombre del cliente (opcional)">
+            </div>
+            <div class="cart-total" id="cartTotal">$0.00 <span>total</span></div>
+            <button class="btn btn-primary" style="width:100%" onclick="confirmarVenta()" id="btnConfirmar" disabled>
+              Confirmar Venta
+            </button>
+            <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="clearCart()">
+              Limpiar carrito
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────── PANEL: Historial ──────────── -->
+    <div class="panel" id="panel-historial">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Historial de Ventas</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadHistorial()">Actualizar</button>
+        </div>
+        <table id="tbl-historial">
+          <thead><tr><th>#</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ──────────── PANEL: Inventario ──────────── -->
+    <div class="panel" id="panel-inventario">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Inventario de Productos</div>
+          <button class="btn btn-primary btn-sm" onclick="openModalProduct()">+ Agregar producto</button>
+        </div>
+        <div class="search-bar" style="margin-top:4px">
+          <input class="search-input" placeholder="Filtrar productos..." id="invSearch" oninput="filterInventory()">
+        </div>
+        <table id="tbl-inventario">
+          <thead><tr><th>Producto</th><th>Categoria</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ──────────── PANEL: Chatbot ──────────── -->
+    <div class="panel" id="panel-chatbot">
+      <div class="card chat-wrap">
+        <div class="card-header" style="padding:0 0 12px">
+          <div>
+            <div class="card-title">Asistente IA de Ventas</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+              Analiza tu negocio con datos reales
+            </div>
+          </div>
+        </div>
+        <div class="suggested-queries">
+          <div class="sq-btn" onclick="sendSuggestion(this)">Que producto debo reabastecer?</div>
+          <div class="sq-btn" onclick="sendSuggestion(this)">Resumen de ventas de esta semana</div>
+          <div class="sq-btn" onclick="sendSuggestion(this)">Cual es mi producto mas rentable?</div>
+          <div class="sq-btn" onclick="sendSuggestion(this)">Recomendaciones para aumentar ingresos</div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg msg-ai">
+            Hola, soy tu asistente de analisis de ventas. Tengo acceso a los datos reales de tu negocio y puedo ayudarte a tomar mejores decisiones. Que quieres analizar hoy?
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chatInput" rows="1" placeholder="Pregunta sobre tus ventas, inventario o estrategias..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+          <button class="btn btn-primary" onclick="sendChat()" id="btnSend">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ─── Modal Producto ─── -->
+<div class="modal-overlay" id="modalProduct">
+  <div class="modal">
+    <div class="modal-title" id="modalProductTitle">Agregar Producto</div>
+    <input type="hidden" id="editProductId">
+    <div class="form-group full-width" style="margin-bottom:14px">
+      <label>Imagen del producto</label>
+      <div class="image-upload-area" id="imageUploadArea">
+        <img id="imagePreview" src="" alt="Preview" style="display:none">
+        <svg id="uploadPlaceholder" class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span id="uploadLabel" class="upload-label">Haz clic o arrastra una imagen</span>
+        <input type="file" id="fImage" accept="image/*" onchange="previewProductImage(this)">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="fName" placeholder="Nombre del producto">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <input type="text" id="fCategory" placeholder="Bebidas, Snacks...">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Precio ($)</label>
+        <input type="number" id="fPrice" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Stock inicial</label>
+        <input type="number" id="fStock" placeholder="0" min="0">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" onclick="saveProduct()">Guardar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalProduct')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Toast Container ─── -->
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
