@@ -7,17 +7,22 @@ from ..models.sale_item import SaleItem
 from ..models.product import Product
 from .payment_service import process_payment
 
+_TAX_FACTOR = 0.16 / 1.16  # extrae el IVA incluido en el precio
+
 def register_sale(items_data, client_name="", payment_method="efectivo"):
     """
     items_data: lista de {product_id, quantity}
     client_name: nombre del cliente para el ticket
     payment_method: "efectivo" | "tarjeta" | "transferencia"
     Crea la venta, descuenta stock y retorna Sale.
+    Los precios ya incluyen IVA; el descuento se aplica por producto.
     """
-    total = 0.0
     sale = Sale(total_amount=0, client_name=client_name)
     db.session.add(sale)
     db.session.flush()
+
+    subtotal_bruto = 0.0
+    subtotal_neto = 0.0
 
     for item in items_data:
         product = Product.query.get(item["product_id"])
@@ -25,13 +30,24 @@ def register_sale(items_data, client_name="", payment_method="efectivo"):
             db.session.rollback()
             name = product.name if product else str(item["product_id"])
             raise ValueError(f"Stock insuficiente para {name}")
-        subtotal = product.price * item["quantity"]
-        total += subtotal
-        product.stock -= item["quantity"]
+        qty = item["quantity"]
+        unit_price = product.price
+        disc_factor = 1.0 - (product.discount_pct or 0.0) / 100.0
+        disc_price = unit_price * disc_factor
+        subtotal_bruto += unit_price * qty
+        subtotal_neto += disc_price * qty
+        product.stock -= qty
         si = SaleItem(sale_id=sale.id, product_id=product.id,
-                      quantity=item["quantity"], price=product.price)
+                      quantity=qty, price=disc_price)
         db.session.add(si)
 
+    discount_amount = subtotal_bruto - subtotal_neto
+    tax_amount = subtotal_neto * _TAX_FACTOR  # IVA extraído (informativo)
+    total = subtotal_neto
+
+    sale.subtotal_amount = subtotal_bruto
+    sale.discount_amount = discount_amount
+    sale.tax_amount = tax_amount
     sale.total_amount = total
 
     payment_result = process_payment(payment_method, total)

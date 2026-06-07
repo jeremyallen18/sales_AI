@@ -7,9 +7,20 @@ class CartProvider with ChangeNotifier {
   final Map<int, CartItem> _items = {};
 
   Map<int, CartItem> get items => Map.unmodifiable(_items);
+  static const double _taxFactor = 0.16 / 1.16;
+
   int get count => _items.values.fold(0, (sum, i) => sum + i.quantity);
-  double get total => _items.values.fold(0.0, (sum, i) => sum + i.subtotal);
   bool get isEmpty => _items.isEmpty;
+
+  double get subtotalBruto =>
+      _items.values.fold(0.0, (sum, i) => sum + i.product.price * i.quantity);
+
+  double get total =>
+      _items.values.fold(0.0, (sum, i) => sum + i.subtotal);
+
+  double get discountAmount => subtotalBruto - total;
+
+  double get taxAmount => total * _taxFactor;
 
   void add(Product product) {
     if (_items.containsKey(product.id)) {

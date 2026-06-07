@@ -4,7 +4,8 @@ Registra blueprints, base de datos y configuración inicial.
 """
 
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
+from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -27,10 +28,14 @@ def _migrate_columns(app):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     migrations = [
-        ("products", "image_url", "TEXT DEFAULT ''"),
-        ("sales", "client_name", "TEXT DEFAULT ''"),
-        ("sales", "payment_method", "TEXT DEFAULT 'efectivo'"),
-        ("sales", "payment_status", "TEXT DEFAULT 'aprobado'"),
+        ("products", "image_url",       "TEXT DEFAULT ''"),
+        ("products", "discount_pct",    "REAL DEFAULT 0.0"),
+        ("sales",    "client_name",     "TEXT DEFAULT ''"),
+        ("sales",    "payment_method",  "TEXT DEFAULT 'efectivo'"),
+        ("sales",    "payment_status",  "TEXT DEFAULT 'aprobado'"),
+        ("sales",    "subtotal_amount", "REAL DEFAULT 0.0"),
+        ("sales",    "discount_amount", "REAL DEFAULT 0.0"),
+        ("sales",    "tax_amount",      "REAL DEFAULT 0.0"),
     ]
     for table, column, col_type in migrations:
         cursor.execute(f"PRAGMA table_info({table})")
@@ -74,9 +79,26 @@ def create_app():
     app.register_blueprint(health_bp)
     app.register_blueprint(bi_bp)
 
-    # Manejador global de errores no capturados
+    # Favicon — evita 404 constante en browsers
+    @app.route("/favicon.ico")
+    def favicon():
+        return send_from_directory(app.static_folder, "favicon.ico",
+                                   mimetype="image/vnd.microsoft.icon") \
+               if (app.static_folder and
+                   __import__("os").path.exists(
+                       __import__("os").path.join(app.static_folder, "favicon.ico"))) \
+               else ("", 204)
+
+    # Manejador de errores HTTP (404, 405, etc.) — responde con el código correcto
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e):
+        return jsonify({"error": e.description}), e.code
+
+    # Manejador global de errores inesperados
     @app.errorhandler(Exception)
     def handle_exception(e):
+        if isinstance(e, HTTPException):
+            return jsonify({"error": e.description}), e.code
         logger.exception("Error no capturado: %s", e)
         return jsonify({"error": "Error interno del servidor"}), 500
 

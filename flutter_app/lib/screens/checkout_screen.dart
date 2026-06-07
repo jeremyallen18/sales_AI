@@ -126,15 +126,51 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   color: AppColors.onSurface, fontSize: 13),
                             ),
                           ),
-                          Text(
-                            '\$${item.subtotal.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                                color: AppColors.onSurfaceVariant,
-                                fontWeight: FontWeight.w600),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (item.product.discountPct > 0)
+                                Text(
+                                  '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      color: AppColors.onSurfaceVariant,
+                                      fontSize: 11,
+                                      decoration: TextDecoration.lineThrough),
+                                ),
+                              Text(
+                                '\$${item.subtotal.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                    color: item.product.discountPct > 0
+                                        ? AppColors.success
+                                        : AppColors.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     )),
+                if (cart.discountAmount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Descuento',
+                            style: TextStyle(
+                                color: AppColors.success,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        Text(
+                          '-\$${cart.discountAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              color: AppColors.success,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
                 const Divider(color: AppColors.outline),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -152,6 +188,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           color: AppColors.primary,
                           fontSize: 18,
                           fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('IVA incluido (16%)',
+                        style: TextStyle(
+                            color: AppColors.onSurfaceVariant, fontSize: 11)),
+                    Text(
+                      '\$${cart.taxAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          color: AppColors.onSurfaceVariant, fontSize: 11),
                     ),
                   ],
                 ),

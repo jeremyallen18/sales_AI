@@ -38,9 +38,12 @@ function esc(str) {
     .replace(/"/g, '&quot;')
 }
 
-const fmt        = n  => `$${Number(n).toFixed(2)}`
-const cartCount  = () => Object.values(S.cart).reduce((s, i) => s + i.qty, 0)
-const cartTotal  = () => Object.values(S.cart).reduce((s, i) => s + i.product.price * i.qty, 0)
+const fmt          = n  => `$${Number(n).toFixed(2)}`
+const cartCount    = () => Object.values(S.cart).reduce((s, i) => s + i.qty, 0)
+const cartSubtotal = () => Object.values(S.cart).reduce((s, i) => s + i.product.price * i.qty, 0)
+const cartDiscount = () => Object.values(S.cart).reduce((s, i) => s + i.product.price * (i.product.discount_pct || 0) / 100 * i.qty, 0)
+const cartTotal    = () => cartSubtotal() - cartDiscount()
+const cartTax      = () => cartTotal() * (0.16 / 1.16)
 const allCats    = () => [...new Set(S.products.map(p => p.category).filter(Boolean))].sort()
 const filtered   = () => S.products.filter(p => {
   const okCat    = S.category === 'all' || p.category === S.category
@@ -139,17 +142,28 @@ function renderProducts() {
     const img      = p.image_url
       ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" class="product-img w-3/4 h-3/4 object-contain"/>`
       : `<span class="material-symbols-outlined text-[64px] text-on-surface-variant/25">${catIcon(p.category)}</span>`
-    const lowBadge = p.stock <= 5
+    const discPct    = p.discount_pct || 0
+    const discPrice  = p.price * (1 - discPct / 100)
+    const lowBadge   = p.stock <= 5
       ? `<div class="absolute top-2 left-2 z-10"><span class="bg-error text-on-error text-[11px] font-bold px-2 py-0.5 rounded-sm shadow-sm">¡Últimos!</span></div>`
       : ''
-    const cartBadge = inCart
+    const discBadge  = discPct > 0
+      ? `<div class="absolute top-2 left-2 z-10"><span class="bg-green-600 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-sm shadow-sm">−${discPct % 1 === 0 ? discPct : discPct.toFixed(1)}%</span></div>`
+      : ''
+    const cartBadge  = inCart
       ? `<div class="absolute top-2 right-2 z-10 bg-primary text-on-primary text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow">${inCart}</div>`
       : ''
+    const priceBlock = discPct > 0
+      ? `<div class="flex flex-col leading-tight">
+           <span class="text-[11px] text-on-surface-variant line-through">${fmt(p.price)}</span>
+           <span class="font-display text-headline-md text-green-600 font-bold">${fmt(discPrice)}</span>
+         </div>`
+      : `<span class="font-display text-headline-md text-primary font-bold">${fmt(p.price)}</span>`
 
     return `
       <div onclick="addToCartById(${p.id})"
         class="product-card bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] transition-shadow relative flex flex-col cursor-pointer border border-surface-variant/50">
-        ${lowBadge}${cartBadge}
+        ${p.stock <= 5 ? lowBadge : discBadge}${cartBadge}
         <div class="w-full aspect-square mb-4 relative bg-surface-container-low rounded-lg overflow-hidden flex items-center justify-center">
           ${img}
         </div>
@@ -157,7 +171,7 @@ function renderProducts() {
           <p class="text-on-surface font-medium line-clamp-2 mb-1 text-[15px] leading-snug">${esc(p.name)}</p>
           <p class="font-label-md text-label-md text-on-surface-variant mb-2">${esc(p.category)}</p>
           <div class="mt-auto flex items-center justify-between pt-2">
-            <span class="font-display text-headline-md text-primary font-bold">${fmt(p.price)}</span>
+            ${priceBlock}
             <button onclick="event.stopPropagation();addToCartById(${p.id})"
               class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center hover:bg-primary-container transition-colors shadow-sm active:scale-90">
               <span class="material-symbols-outlined font-bold">add</span>
@@ -226,9 +240,22 @@ function renderCart() {
   if (emptyEl)    emptyEl.classList.toggle('hidden', items.length > 0)
   if (itemsWrap)  itemsWrap.classList.toggle('hidden', items.length === 0)
 
-  const total = cartTotal()
-  if (subtotalEl) subtotalEl.textContent = fmt(total)
-  if (totalEl)    totalEl.textContent    = fmt(total)
+  const subtotal = cartSubtotal()
+  const discount = cartDiscount()
+  const total    = cartTotal()
+  const tax      = cartTax()
+
+  if (subtotalEl) subtotalEl.textContent = fmt(subtotal)
+
+  const discountRow = document.getElementById('summary-discount-row')
+  const discountEl  = document.getElementById('summary-discount')
+  if (discountRow) discountRow.classList.toggle('hidden', discount === 0)
+  if (discountEl)  discountEl.textContent = `-${fmt(discount)}`
+
+  const taxEl = document.getElementById('summary-tax')
+  if (taxEl) taxEl.textContent = fmt(tax)
+
+  if (totalEl) totalEl.textContent = fmt(total)
 
   if (!listEl) return
   listEl.innerHTML = items.map(({ product: p, qty }) => `
@@ -326,7 +353,19 @@ function openCheckout() {
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('change-display')?.classList.add('hidden')
   document.getElementById('insuf-display')?.classList.add('hidden')
-  document.getElementById('checkout-total').textContent = fmt(cartTotal())
+  const subtotal = cartSubtotal()
+  const discount = cartDiscount()
+  const total    = cartTotal()
+  const tax      = cartTax()
+
+  document.getElementById('checkout-subtotal').textContent = fmt(subtotal)
+  document.getElementById('checkout-total').textContent    = fmt(total)
+  document.getElementById('checkout-tax').textContent      = fmt(tax)
+
+  const dRow = document.getElementById('checkout-discount-row')
+  const dEl  = document.getElementById('checkout-discount')
+  if (dRow) dRow.classList.toggle('hidden', discount === 0)
+  if (dEl)  dEl.textContent = `-${fmt(discount)}`
 
   updateMethodUI()
   document.getElementById('modal-checkout').classList.remove('hidden')

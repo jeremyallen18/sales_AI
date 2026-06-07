@@ -202,18 +202,36 @@ function renderCart() {
     document.getElementById('btnConfirmar').disabled = true;
     return;
   }
-  const total = items.reduce((s, i) => s + i.product.price * i.qty, 0);
-  container.innerHTML = items.map(i => `
+  const subtotalBruto = items.reduce((s, i) => s + i.product.price * i.qty, 0);
+  const subtotalNeto  = items.reduce((s, i) => {
+    const dp = i.product.price * (1 - (i.product.discount_pct || 0) / 100);
+    return s + dp * i.qty;
+  }, 0);
+  const descuento = subtotalBruto - subtotalNeto;
+  const iva       = subtotalNeto * (0.16 / 1.16);
+
+  container.innerHTML = items.map(i => {
+    const dp = i.product.price * (1 - (i.product.discount_pct || 0) / 100);
+    return `
     <div class="cart-item">
-      <div class="ci-name">${i.product.name}</div>
+      <div class="ci-name">${i.product.name}${i.product.discount_pct > 0 ? ` <span style="font-size:11px;color:var(--success);font-weight:600">-${i.product.discount_pct}%</span>` : ''}</div>
       <div class="ci-qty">
         <button class="qty-btn" onclick="changeQty(${i.product.id}, -1)">-</button>
         <span style="font-family:var(--mono);font-size:13px">${i.qty}</span>
         <button class="qty-btn" onclick="changeQty(${i.product.id}, 1)">+</button>
       </div>
-      <div class="ci-price">$${(i.product.price * i.qty).toFixed(2)}</div>
-    </div>`).join('');
-  document.getElementById('cartTotal').innerHTML = `$${total.toFixed(2)} <span>total</span>`;
+      <div class="ci-price">$${(dp * i.qty).toFixed(2)}</div>
+    </div>`;
+  }).join('');
+
+  const discountRow = descuento > 0
+    ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--success)"><span>Descuento</span><span>-$${descuento.toFixed(2)}</span></div>`
+    : '';
+  document.getElementById('cartTotal').innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between"><span>Subtotal</span><span>$${subtotalBruto.toFixed(2)}</span></div>
+    ${discountRow}
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;margin:4px 0"><span>A pagar</span><span>$${subtotalNeto.toFixed(2)}</span></div>
+    <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between"><span>IVA incluido (16%)</span><span>$${iva.toFixed(2)}</span></div>`;
   document.getElementById('btnConfirmar').disabled = false;
 }
 
@@ -325,6 +343,7 @@ function openModalProduct(productId = null) {
       document.getElementById('fCategory').value = p.category;
       document.getElementById('fPrice').value = p.price;
       document.getElementById('fStock').value = p.stock;
+      document.getElementById('fDiscount').value = p.discount_pct || 0;
       if (p.image_url) {
         preview.src = p.image_url;
         preview.style.display = 'block';
@@ -337,7 +356,7 @@ function openModalProduct(productId = null) {
       }
     }
   } else {
-    ['fName', 'fCategory', 'fPrice', 'fStock'].forEach(id => document.getElementById(id).value = '');
+    ['fName', 'fCategory', 'fPrice', 'fStock', 'fDiscount'].forEach(id => document.getElementById(id).value = '');
     preview.style.display = 'none';
     placeholder.style.display = '';
     lbl.textContent = 'Haz clic o arrastra una imagen';
@@ -372,7 +391,8 @@ async function saveProduct() {
     name: document.getElementById('fName').value,
     category: document.getElementById('fCategory').value,
     price: document.getElementById('fPrice').value,
-    stock: document.getElementById('fStock').value
+    stock: document.getElementById('fStock').value,
+    discount_pct: parseFloat(document.getElementById('fDiscount').value) || 0
   };
   if (!data.name || !data.price) { showToast('Nombre y precio son requeridos', 'error'); return; }
 
