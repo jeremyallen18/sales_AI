@@ -6,5 +6,6 @@ class CartItem {
 
   CartItem({required this.product, this.quantity = 1});
 
-  double get subtotal => product.price * quantity;
+  double get unitPrice => product.price * (1 - product.discountPct / 100);
+  double get subtotal => unitPrice * quantity;
 }

@@ -361,10 +361,31 @@ class _ProductCard extends StatelessWidget {
                       child: _ProductImage(imageUrl: product.imageUrl),
                     ),
                   ),
-                  if (inCart)
+                  if (product.discountPct > 0)
                     Positioned(
                       top: 6,
                       left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF16A34A),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '−${product.discountPct % 1 == 0 ? product.discountPct.toInt() : product.discountPct.toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (inCart)
+                    Positioned(
+                      top: 6,
+                      right: 6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
@@ -406,14 +427,38 @@ class _ProductCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    '\$${product.price.toStringAsFixed(2)}',
-                    style: GoogleFonts.montserrat(
-                      color: AppColors.primary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                  if (product.discountPct > 0)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '\$${product.price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: AppColors.onSurfaceVariant,
+                            fontSize: 11,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                        Text(
+                          '\$${(product.price * (1 - product.discountPct / 100)).toStringAsFixed(2)}',
+                          style: GoogleFonts.montserrat(
+                            color: const Color(0xFF16A34A),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      '\$${product.price.toStringAsFixed(2)}',
+                      style: GoogleFonts.montserrat(
+                        color: AppColors.primary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
                   GestureDetector(
                     onTap: () => _handleTap(context, cart, inCart),
                     child: Container(
@@ -526,11 +571,26 @@ class _CartQuickSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            '\$${product.price.toStringAsFixed(2)}',
-            style: const TextStyle(
-                color: AppColors.primary, fontWeight: FontWeight.w600),
-          ),
+          if (product.discountPct > 0) ...[
+            Text(
+              '\$${product.price.toStringAsFixed(2)}',
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 12,
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+            Text(
+              '\$${(product.price * (1 - product.discountPct / 100)).toStringAsFixed(2)}',
+              style: const TextStyle(
+                  color: Color(0xFF16A34A), fontWeight: FontWeight.w700),
+            ),
+          ] else
+            Text(
+              '\$${product.price.toStringAsFixed(2)}',
+              style: const TextStyle(
+                  color: AppColors.primary, fontWeight: FontWeight.w600),
+            ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

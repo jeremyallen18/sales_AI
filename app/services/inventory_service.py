@@ -19,7 +19,8 @@ def create_product(data):
     category = sanitize_text(data.get("category", "General"), MAX_CATEGORY_LEN) or "General"
     p = Product(name=name, price=float(data["price"]),
                 stock=int(data.get("stock", 0)), category=category,
-                image_url=data.get("image_url", ""))
+                image_url=data.get("image_url", ""),
+                discount_pct=float(data.get("discount_pct", 0.0)))
     db.session.add(p)
     db.session.commit()
     return p
@@ -34,6 +35,8 @@ def update_product(pid, data):
         p.category = sanitize_text(data["category"], MAX_CATEGORY_LEN) or p.category
     if "image_url" in data:
         p.image_url = data["image_url"]
+    if "discount_pct" in data:
+        p.discount_pct = float(data["discount_pct"])
     db.session.commit()
     return p
 

@@ -303,6 +303,10 @@
           <span>Subtotal</span>
           <span id="summary-subtotal" class="font-medium text-on-surface">$0.00</span>
         </div>
+        <div id="summary-discount-row" class="hidden flex justify-between items-center font-body-md text-body-md text-green-600">
+          <span>Descuento</span>
+          <span id="summary-discount" class="font-medium">-$0.00</span>
+        </div>
       </div>
 
       <div class="h-px w-full bg-outline-variant/30 my-1"></div>
@@ -310,6 +314,10 @@
       <div class="flex justify-between items-end">
         <span class="font-label-lg text-label-lg font-bold text-on-surface uppercase tracking-wider">Total</span>
         <span id="summary-total" class="font-display text-[36px] leading-[40px] font-extrabold text-primary tracking-tight">$0.00</span>
+      </div>
+      <div class="flex justify-between items-center text-on-surface-variant text-xs mt-1">
+        <span>IVA incluido (16%)</span>
+        <span id="summary-tax" class="font-medium">$0.00</span>
       </div>
 
       <!-- Botón pagar -->
@@ -389,10 +397,25 @@
     <!-- Cuerpo del formulario -->
     <div class="px-6 py-5 flex flex-col gap-5">
 
-      <!-- Total -->
-      <div class="flex justify-between items-center bg-surface-container rounded-xl px-4 py-3">
-        <span class="font-label-lg text-label-lg text-on-surface-variant">Total a pagar</span>
-        <span id="checkout-total" class="font-display text-headline-md font-extrabold text-primary">$0.00</span>
+      <!-- Resumen de precios -->
+      <div class="bg-surface-container rounded-xl px-4 py-3 flex flex-col gap-1.5">
+        <div class="flex justify-between items-center text-on-surface-variant text-sm">
+          <span>Subtotal</span>
+          <span id="checkout-subtotal">$0.00</span>
+        </div>
+        <div id="checkout-discount-row" class="hidden flex justify-between items-center text-sm text-green-600">
+          <span>Descuento</span>
+          <span id="checkout-discount">-$0.00</span>
+        </div>
+        <div class="h-px bg-outline-variant/30 my-0.5"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-label-lg text-label-lg text-on-surface-variant">Total a pagar</span>
+          <span id="checkout-total" class="font-display text-headline-md font-extrabold text-primary">$0.00</span>
+        </div>
+        <div class="flex justify-between items-center text-on-surface-variant text-xs">
+          <span>IVA incluido (16%)</span>
+          <span id="checkout-tax">$0.00</span>
+        </div>
       </div>
 
       <!-- Nombre del cliente -->

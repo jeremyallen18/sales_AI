@@ -257,9 +257,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600)),
                                   Text(
-                                    '${fmt.format(item.product.price)} x ${item.quantity}',
-                                    style: const TextStyle(
-                                        color: AppColors.textSec, fontSize: 13),
+                                    item.product.discountPct > 0
+                                        ? '${fmt.format(item.unitPrice)} x ${item.quantity}  (-${item.product.discountPct.toStringAsFixed(0)}%)'
+                                        : '${fmt.format(item.product.price)} x ${item.quantity}',
+                                    style: TextStyle(
+                                        color: item.product.discountPct > 0
+                                            ? AppColors.success
+                                            : AppColors.textSec,
+                                        fontSize: 13),
                                   ),
                                 ],
                               ),
@@ -323,6 +328,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      const Text('Subtotal',
+                          style: TextStyle(
+                              color: AppColors.textSec, fontSize: 13)),
+                      Text(fmt.format(cart.subtotalBruto),
+                          style: const TextStyle(
+                              color: AppColors.textSec, fontSize: 13)),
+                    ],
+                  ),
+                  if (cart.discountAmount > 0) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Descuento',
+                            style: TextStyle(
+                                color: AppColors.success, fontSize: 13)),
+                        Text('-${fmt.format(cart.discountAmount)}',
+                            style: const TextStyle(
+                                color: AppColors.success, fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                  const Divider(color: AppColors.divider, height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       const Text('TOTAL',
                           style: TextStyle(
                               color: AppColors.textSec,
@@ -335,6 +366,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             fontWeight: FontWeight.bold,
                             fontSize: 24),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('IVA incluido (16%)',
+                          style: TextStyle(
+                              color: AppColors.textSec, fontSize: 11)),
+                      Text(fmt.format(cart.taxAmount),
+                          style: const TextStyle(
+                              color: AppColors.textSec, fontSize: 11)),
                     ],
                   ),
                   const SizedBox(height: 12),

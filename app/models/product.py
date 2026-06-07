@@ -13,6 +13,7 @@ class Product(db.Model):
     stock = db.Column(db.Integer, default=0)
     category = db.Column(db.String(60), default="General")
     image_url = db.Column(db.String(300), default="")
+    discount_pct = db.Column(db.Float, default=0.0)  # 0–100 %
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     sale_items = db.relationship("SaleItem", backref="product", lazy=True)
 
@@ -26,4 +27,5 @@ class Product(db.Model):
         return {"id": self.id, "name": self.name, "price": self.price,
                 "stock": self.stock, "category": self.category,
                 "image_url": image_url,
+                "discount_pct": self.discount_pct or 0.0,
                 "created_at": self.created_at.isoformat()}

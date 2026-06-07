@@ -5,6 +5,7 @@ class Product {
   final int stock;
   final String category;
   final String imageUrl;
+  final double discountPct;
 
   const Product({
     required this.id,
@@ -13,6 +14,7 @@ class Product {
     required this.stock,
     required this.category,
     required this.imageUrl,
+    this.discountPct = 0.0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Product {
       stock: json['stock'] as int,
       category: (json['category'] as String?) ?? 'General',
       imageUrl: (json['image_url'] as String?) ?? '',
+      discountPct: (json['discount_pct'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -32,6 +35,7 @@ class Product {
         'stock': stock,
         'category': category,
         'image_url': imageUrl,
+        'discount_pct': discountPct,
       };
 
   bool get isLowStock => stock <= 10;
