@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../main.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../config/api_config.dart';
@@ -13,45 +15,115 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final inCart = cart.items.containsKey(product.id);
-    final theme = Theme.of(context);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _buildImage()),
+          Expanded(
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(8)),
+                  child: Container(
+                    width: double.infinity,
+                    color: AppColors.surfaceContainerLow,
+                    child: _buildImage(),
+                  ),
+                ),
+                if (inCart)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'En carrito',
+                        style: TextStyle(
+                          color: AppColors.onSecondary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
             child: Text(
               product.name,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.onSurface,
+                height: 1.3,
+              ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 2),
-            child: Text(
-              product.category,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: Colors.grey[500]),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   '\$${product.price.toStringAsFixed(2)}',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.montserrat(
+                    color: AppColors.primary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                _buildCartButton(context, cart, inCart),
+                GestureDetector(
+                  onTap: () {
+                    if (!inCart) {
+                      cart.add(product);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.name} agregado'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    } else {
+                      cart.remove(product.id);
+                    }
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: inCart
+                          ? AppColors.surfaceContainer
+                          : AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      inCart ? Icons.remove : Icons.add,
+                      color: inCart ? AppColors.primary : Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -62,67 +134,22 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildImage() {
     final url = ApiConfig.productImage(product.imageUrl);
-    final placeholder = Container(
-      color: Colors.grey[100],
-      child: const Center(
-        child: Icon(Icons.inventory_2_outlined, color: Colors.grey, size: 40),
-      ),
-    );
-
-    if (url.isEmpty) return placeholder;
-
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      placeholder: (_, __) => Container(
-        color: Colors.grey[100],
-        child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-      errorWidget: (_, __, ___) => placeholder,
-    );
-  }
-
-  Widget _buildCartButton(
-      BuildContext context, CartProvider cart, bool inCart) {
-    final theme = Theme.of(context);
-
-    if (inCart) {
-      return GestureDetector(
-        onTap: () => cart.remove(product.id),
-        child: Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            color: Colors.red[50],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.remove_shopping_cart,
-              size: 18, color: Colors.red),
-        ),
+    if (url.isEmpty) {
+      return const Center(
+        child: Icon(Icons.inventory_2_outlined,
+            color: AppColors.onSurfaceVariant, size: 40),
       );
     }
-
-    return GestureDetector(
-      onTap: () {
-        cart.add(product);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${product.name} agregado'),
-            duration: const Duration(seconds: 1),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(Icons.add_shopping_cart,
-            size: 18, color: theme.colorScheme.primary),
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.contain,
+      placeholder: (_, __) => const Center(
+        child: CircularProgressIndicator(
+            strokeWidth: 2, color: AppColors.primary),
+      ),
+      errorWidget: (_, __, ___) => const Center(
+        child: Icon(Icons.inventory_2_outlined,
+            color: AppColors.onSurfaceVariant, size: 40),
       ),
     );
   }

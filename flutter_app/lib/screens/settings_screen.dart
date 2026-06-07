@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../main.dart';
 import '../services/settings_service.dart';
@@ -46,7 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final base = _normalize(_ctrl.text);
     try {
       final uri = Uri.parse('$base/api/inventory/products');
-      final resp = await http.get(uri).timeout(const Duration(seconds: 6));
+      final resp =
+          await http.get(uri).timeout(const Duration(seconds: 6));
       if (!mounted) return;
       final ok = resp.statusCode == 200;
       setState(() {
@@ -76,8 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await SettingsService.saveBaseUrl(url);
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Configuración guardada')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Configuración guardada')));
     Navigator.pop(context);
   }
 
@@ -93,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.navyBg,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(title: const Text('Configuración')),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -102,20 +104,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.navyCard,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.navyLight),
+              border: Border.all(color: AppColors.outline),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, color: AppColors.catHeader, size: 20),
-                SizedBox(width: 10),
-                Expanded(
+                const Icon(Icons.info_outline,
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 10),
+                const Expanded(
                   child: Text(
                     'Ingresa la dirección IP o dominio del servidor donde '
                     'está corriendo la aplicación de ventas.',
-                    style: TextStyle(color: AppColors.textSec, fontSize: 12,
+                    style: TextStyle(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 12,
                         height: 1.5),
                   ),
                 ),
@@ -125,20 +130,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // ── Campo URL ──
-          const Text('Dirección del servidor',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13)),
+          Text(
+            'Dirección del servidor',
+            style: GoogleFonts.montserrat(
+                color: AppColors.onSurface,
+                fontWeight: FontWeight.w600,
+                fontSize: 13),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _ctrl,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: AppColors.onSurface, fontSize: 14),
             keyboardType: TextInputType.url,
             autocorrect: false,
             decoration: const InputDecoration(
               hintText: 'http://192.168.1.x:5000',
-              prefixIcon: Icon(Icons.dns_outlined, color: AppColors.textSec),
+              prefixIcon: Icon(Icons.dns_outlined,
+                  color: AppColors.onSurfaceVariant),
             ),
             onChanged: (_) => setState(() => _testResult = null),
           ),
@@ -150,17 +158,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: (_testOk ? AppColors.success : AppColors.danger)
-                    .withValues(alpha: 0.15),
+                color: (_testOk ? AppColors.success : AppColors.error)
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _testOk ? AppColors.success : AppColors.danger,
+                  color: _testOk ? AppColors.success : AppColors.error,
                 ),
               ),
               child: Text(
                 _testResult!,
                 style: TextStyle(
-                  color: _testOk ? AppColors.success : AppColors.danger,
+                  color: _testOk ? AppColors.success : AppColors.error,
                   fontSize: 13,
                 ),
               ),
@@ -176,16 +184,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.catHeader),
+                        strokeWidth: 2, color: AppColors.primary),
                   )
-                : const Icon(Icons.wifi_find, color: AppColors.catHeader),
+                : const Icon(Icons.wifi_find, color: AppColors.primary),
             label: Text(
               _testing ? 'Probando...' : 'Probar conexión',
-              style: const TextStyle(color: AppColors.catHeader),
+              style: const TextStyle(color: AppColors.primary),
             ),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.navyLight),
+              side: const BorderSide(color: AppColors.primary),
               padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
             ),
           ),
           const SizedBox(height: 12),
@@ -204,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const SizedBox(height: 36),
-          const Divider(color: AppColors.divider),
+          const Divider(color: AppColors.outline),
           const SizedBox(height: 8),
 
           // ── Restablecer ──
@@ -218,7 +228,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // ── Ejemplos ──
           const SizedBox(height: 24),
           const _ExamplesCard(),
         ],
@@ -241,33 +250,41 @@ class _ExamplesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.navyCard,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: AppColors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Ejemplos de dirección',
-              style: TextStyle(
-                  color: AppColors.catHeader,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            'Ejemplos de dirección',
+            style: GoogleFonts.montserrat(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 10),
           ...examples.map((e) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   children: [
-                    const Icon(Icons.circle,
-                        size: 5, color: AppColors.textSec),
-                    const SizedBox(width: 8),
+                    Container(
+                      width: 5,
+                      height: 5,
+                      margin: const EdgeInsets.only(right: 8, top: 1),
+                      decoration: const BoxDecoration(
+                        color: AppColors.onSurfaceVariant,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     Text('${e.$1}: ',
                         style: const TextStyle(
-                            color: AppColors.textSec, fontSize: 12)),
+                            color: AppColors.onSurfaceVariant, fontSize: 12)),
                     Expanded(
                       child: Text(e.$2,
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.onSurface,
                               fontSize: 12,
                               fontFamily: 'monospace')),
                     ),
