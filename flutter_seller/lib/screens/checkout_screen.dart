@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
@@ -14,29 +15,58 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _clientCtrl = TextEditingController();
+  final _cashCtrl = TextEditingController();
+  String _selectedMethod = 'efectivo';
   bool _processing = false;
 
   @override
   void dispose() {
     _clientCtrl.dispose();
+    _cashCtrl.dispose();
     super.dispose();
   }
+
+  double get _cashReceived => double.tryParse(_cashCtrl.text) ?? 0.0;
 
   Future<void> _confirm() async {
     final cart = context.read<CartProvider>();
     if (cart.isEmpty) return;
 
+    if (_selectedMethod == 'efectivo' && _cashCtrl.text.isNotEmpty) {
+      if (_cashReceived < cart.total) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('El monto recibido es menor al total'),
+          backgroundColor: AppColors.danger,
+        ));
+        return;
+      }
+    }
+
     setState(() => _processing = true);
     try {
-      final result = await cart.checkout(_clientCtrl.text.trim());
+      final result = await cart.checkout(_clientCtrl.text.trim(), _selectedMethod);
       if (!mounted) return;
 
-      // Reload products to update stock
       context.read<ProductsProvider>().load();
 
       final saleId = result['id'];
       final total = (result['total_amount'] as num).toDouble();
+      final paymentMethod = (result['payment_method'] as String?) ?? _selectedMethod;
       final fmt = NumberFormat.currency(locale: 'es_MX', symbol: '\$');
+      final change = (_selectedMethod == 'efectivo' && _cashCtrl.text.isNotEmpty)
+          ? (_cashReceived - total).clamp(0.0, double.infinity)
+          : null;
+
+      const methodLabels = {
+        'efectivo': 'Efectivo',
+        'tarjeta': 'Tarjeta',
+        'transferencia': 'Transferencia',
+      };
+      const methodIcons = {
+        'efectivo': Icons.payments_outlined,
+        'tarjeta': Icons.credit_card_outlined,
+        'transferencia': Icons.account_balance_outlined,
+      };
 
       await showDialog(
         context: context,
@@ -63,13 +93,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       color: AppColors.success,
                       fontWeight: FontWeight.bold,
                       fontSize: 20)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(methodIcons[paymentMethod] ?? Icons.payments_outlined,
+                      color: AppColors.textSec, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    methodLabels[paymentMethod] ?? paymentMethod,
+                    style: const TextStyle(color: AppColors.textSec, fontSize: 13),
+                  ),
+                ],
+              ),
+              if (change != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Cambio:',
+                        style: TextStyle(color: AppColors.textSec, fontSize: 14)),
+                    Text(
+                      fmt.format(change),
+                      style: const TextStyle(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // close dialog
-                Navigator.of(context).pop(); // back to POS
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
               child: const Text('ACEPTAR'),
             ),
@@ -100,7 +159,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         children: [
           // Client name
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: TextField(
               controller: _clientCtrl,
               decoration: const InputDecoration(
@@ -111,6 +170,63 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
 
+          // Payment method selector
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('MÉTODO DE PAGO',
+                    style: TextStyle(
+                        color: AppColors.textSec,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8)),
+                const SizedBox(height: 8),
+                _PaymentMethodSelector(
+                  selected: _selectedMethod,
+                  onChanged: (m) => setState(() {
+                    _selectedMethod = m;
+                    _cashCtrl.clear();
+                  }),
+                ),
+              ],
+            ),
+          ),
+
+          // Cash received field
+          if (_selectedMethod == 'efectivo')
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _cashCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))
+                    ],
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Monto recibido (opcional)',
+                      prefixIcon:
+                          Icon(Icons.payments_outlined, color: AppColors.textSec),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  if (_cashCtrl.text.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _CashFeedback(
+                      cashReceived: _cashReceived,
+                      total: cart.total,
+                      fmt: fmt,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
           // Items list
           Expanded(
             child: cart.isEmpty
@@ -118,7 +234,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: Text('Carrito vacío',
                         style: TextStyle(color: AppColors.textSec)))
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     itemCount: cart.items.length,
                     itemBuilder: (_, i) {
                       final item = cart.items.values.elementAt(i);
@@ -148,7 +264,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ],
                               ),
                             ),
-                            // Quantity controls
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -226,8 +341,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed:
-                          (cart.isEmpty || _processing) ? null : _confirm,
+                      onPressed: (cart.isEmpty || _processing) ? null : _confirm,
                       icon: _processing
                           ? const SizedBox(
                               width: 18,
@@ -235,9 +349,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check),
-                      label: Text(_processing
-                          ? 'Procesando...'
-                          : 'CONFIRMAR VENTA'),
+                      label: Text(_processing ? 'Procesando...' : 'CONFIRMAR VENTA'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -248,6 +360,102 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentMethodSelector extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _PaymentMethodSelector({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    const methods = [
+      ('efectivo', Icons.payments_outlined, 'Efectivo'),
+      ('tarjeta', Icons.credit_card_outlined, 'Tarjeta'),
+      ('transferencia', Icons.account_balance_outlined, 'Transferencia'),
+    ];
+
+    return Row(
+      children: methods.map((m) {
+        final isSelected = selected == m.$1;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => onChanged(m.$1),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.accent.withValues(alpha: 0.15)
+                      : AppColors.navyBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? AppColors.accent : AppColors.divider,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(m.$2,
+                        color: isSelected ? AppColors.accent : AppColors.textSec,
+                        size: 20),
+                    const SizedBox(height: 4),
+                    Text(m.$3,
+                        style: TextStyle(
+                          color: isSelected ? AppColors.accent : AppColors.textSec,
+                          fontSize: 10,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _CashFeedback extends StatelessWidget {
+  final double cashReceived;
+  final double total;
+  final NumberFormat fmt;
+
+  const _CashFeedback({
+    required this.cashReceived,
+    required this.total,
+    required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sufficient = cashReceived >= total;
+    final amount = sufficient ? cashReceived - total : total - cashReceived;
+    final label = sufficient ? 'Cambio' : 'Falta';
+    final color = sufficient ? AppColors.success : AppColors.danger;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          Text(fmt.format(amount),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );

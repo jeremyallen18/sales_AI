@@ -43,7 +43,7 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Map<String, dynamic>> checkout(String clientName) async {
+  Future<Map<String, dynamic>> checkout(String clientName, String paymentMethod) async {
     final saleItems = _items.values
         .map((i) => {'product_id': i.product.id, 'quantity': i.quantity})
         .toList();
@@ -51,6 +51,7 @@ class CartProvider with ChangeNotifier {
     final result = await ApiService.createSale(
       items: saleItems,
       clientName: clientName,
+      paymentMethod: paymentMethod,
     );
     clear();
     return result;

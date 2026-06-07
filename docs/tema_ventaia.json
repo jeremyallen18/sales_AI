@@ -1,0 +1,7 @@
+{
+  "name": "VentaIA",
+  "dataColors": ["#2196F3","#4CAF50","#FF9800","#F44336","#9C27B0","#00BCD4","#FFEB3B","#795548"],
+  "background": "#F5F7FA",
+  "foreground": "#0A1A3F",
+  "tableAccent": "#2196F3"
+}

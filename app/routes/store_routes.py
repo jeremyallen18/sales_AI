@@ -25,7 +25,7 @@ CATÁLOGO ACTUAL (solo productos con stock disponible):
 
 @store_bp.route("/")
 def storefront():
-    return render_template("store.html")
+    return render_template("cliente.html")
 
 
 @store_bp.route("/chat", methods=["POST"])

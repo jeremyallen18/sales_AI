@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tienda</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700;800&display=swap" rel="stylesheet"/>
+  <link href="{{ url_for('static', filename='css/cliente.css') }}" rel="stylesheet"/>
+
+  <script id="tw-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "tertiary-fixed-dim":         "#c6c6c7",
+            "surface-container":          "#f0eded",
+            "tertiary-container":         "#707171",
+            "on-surface":                 "#1b1c1c",
+            "surface-variant":            "#e4e2e1",
+            "inverse-primary":            "#ffb4aa",
+            "surface-container-low":      "#f6f3f2",
+            "on-secondary":               "#ffffff",
+            "inverse-on-surface":         "#f3f0f0",
+            "outline":                    "#936e69",
+            "on-tertiary":                "#ffffff",
+            "error":                      "#ba1a1a",
+            "on-secondary-container":     "#6f5c00",
+            "on-surface-variant":         "#5e3f3b",
+            "surface-container-lowest":   "#ffffff",
+            "on-primary-container":       "#fff5f3",
+            "error-container":            "#ffdad6",
+            "outline-variant":            "#e9bcb6",
+            "secondary-fixed-dim":        "#eac300",
+            "on-tertiary-container":      "#f6f7f7",
+            "surface-container-high":     "#eae8e7",
+            "primary":                    "#b5000b",
+            "inverse-surface":            "#303030",
+            "on-primary-fixed":           "#410001",
+            "tertiary":                   "#575959",
+            "surface-dim":                "#dcd9d9",
+            "surface-bright":             "#fbf9f8",
+            "surface-container-highest":  "#e4e2e1",
+            "on-primary-fixed-variant":   "#930007",
+            "on-secondary-fixed":         "#221b00",
+            "surface":                    "#fbf9f8",
+            "on-secondary-fixed-variant": "#554500",
+            "secondary-fixed":            "#ffe174",
+            "on-tertiary-fixed":          "#1a1c1c",
+            "on-error":                   "#ffffff",
+            "primary-fixed":              "#ffdad5",
+            "primary-container":          "#e30613",
+            "primary-fixed-dim":          "#ffb4aa",
+            "surface-tint":               "#c0000c",
+            "on-error-container":         "#93000a",
+            "tertiary-fixed":             "#e2e2e2",
+            "on-background":              "#1b1c1c",
+            "secondary":                  "#705d00",
+            "background":                 "#fbf9f8",
+            "secondary-container":        "#fed400",
+            "on-tertiary-fixed-variant":  "#454747",
+            "on-primary":                 "#ffffff"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"
+          },
+          spacing: {
+            "margin-desktop": "48px",
+            "max-width":      "1280px",
+            lg: "24px", sm: "8px", md: "16px",
+            xs: "4px",  xl: "40px", safe: "env(safe-area-inset-bottom)"
+          },
+          fontFamily: {
+            "body-md":            ["Inter"],
+            "label-md":           ["Inter"],
+            "body-lg":            ["Inter"],
+            "display":            ["Montserrat"],
+            "headline-lg-mobile": ["Montserrat"],
+            "headline-lg":        ["Montserrat"],
+            "label-lg":           ["Inter"],
+            "headline-md":        ["Montserrat"]
+          },
+          fontSize: {
+            "body-md":            ["16px",{"lineHeight":"24px","fontWeight":"400"}],
+            "label-md":           ["12px",{"lineHeight":"16px","fontWeight":"500"}],
+            "body-lg":            ["18px",{"lineHeight":"28px","fontWeight":"400"}],
+            "display":            ["48px",{"lineHeight":"56px","letterSpacing":"-0.02em","fontWeight":"800"}],
+            "headline-lg-mobile": ["24px",{"lineHeight":"32px","fontWeight":"700"}],
+            "headline-lg":        ["32px",{"lineHeight":"40px","fontWeight":"700"}],
+            "label-lg":           ["14px",{"lineHeight":"20px","fontWeight":"600"}],
+            "headline-md":        ["20px",{"lineHeight":"28px","fontWeight":"700"}]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-background pb-24 md:pb-0 font-body-md text-body-md text-on-background selection:bg-primary selection:text-on-primary">
+
+<!-- ════════════════════════════════
+     BARRA DE NAVEGACIÓN SUPERIOR
+════════════════════════════════ -->
+<header class="sticky top-0 z-50 bg-surface shadow-sm">
+  <!-- Fila principal -->
+  <div class="flex items-center justify-between px-4 md:px-[48px] h-16 max-w-[1280px] mx-auto">
+    <!-- Logo -->
+    <h1 onclick="showStore()"
+        class="font-display text-headline-lg-mobile md:text-headline-lg font-extrabold text-primary cursor-pointer hover:text-primary-container transition-colors active:scale-95">
+      OXXO Go
+    </h1>
+
+    <!-- Buscador desktop -->
+    <div class="hidden md:flex flex-1 max-w-xl mx-8 relative group">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+      <input id="search-input" type="text" placeholder="Buscar productos..."
+        class="w-full h-12 bg-surface-container rounded-lg pl-12 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary focus:bg-surface transition-all font-body-md text-body-md"/>
+    </div>
+
+    <!-- Ícono carrito -->
+    <button onclick="showCart()" class="relative text-primary hover:text-primary-container transition-colors active:scale-95">
+      <span class="material-symbols-outlined text-[28px]">shopping_cart</span>
+      <span class="cart-badge hidden absolute -top-1 -right-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span>
+    </button>
+  </div>
+
+  <!-- Buscador mobile (segunda fila) -->
+  <div class="md:hidden px-4 pb-3">
+    <div class="relative">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+      <input id="search-mobile" type="text" placeholder="Buscar productos..."
+        class="w-full h-10 bg-surface-container rounded-lg pl-10 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary transition-all text-[14px]"/>
+    </div>
+  </div>
+</header>
+
+
+<!-- ════════════════════════════════
+     VISTA: TIENDA
+════════════════════════════════ -->
+<div id="view-store" class="flex flex-col lg:flex-row w-full">
+
+  <!-- Sidebar categorías (solo desktop) -->
+  <nav class="hidden lg:flex flex-col gap-sm p-md h-[calc(100vh-64px)] w-64 sticky top-16 bg-surface-container border-r border-outline-variant shadow-sm overflow-y-auto flex-shrink-0">
+    <div class="mb-lg px-2 pt-4">
+      <h2 class="font-display text-headline-md text-primary mb-1">Categorías</h2>
+      <p class="font-body-md text-body-md text-on-surface-variant text-sm">Filtrar por sección</p>
+    </div>
+    <div id="sidebar-cats" class="flex flex-col gap-sm"></div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <main class="flex-1 w-full">
+
+    <!-- Chips categorías (solo mobile) -->
+    <section class="lg:hidden px-4 py-md">
+      <div id="mobile-cats" class="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-4"></div>
+    </section>
+
+    <!-- ── Carrusel publicitario ── -->
+    <section id="hero-section" class="px-4 md:px-lg py-md mt-2"
+      onmouseenter="pauseSlider()" onmouseleave="resumeSlider()">
+      <div class="relative w-full h-52 md:h-72 rounded-xl overflow-hidden shadow-lg">
+
+        <!-- SLIDE 0 · Bienvenido -->
+        <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#b5000b 0%,#e30613 55%,#930007 100%)">
+          <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
+          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+            <span class="inline-block bg-[#fed400] text-[#6f5c00] text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">BIENVENIDO</span>
+            <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Todo lo que<br/><span style="color:#ffe174">necesitas, aquí.</span></h2>
+            <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Los mejores productos al mejor precio.</p>
+            <button onclick="setCategory('all')" class="bg-[#fed400] hover:bg-[#eac300] text-[#6f5c00] font-bold text-[13px] px-6 py-2.5 rounded-lg w-max shadow-md transition-all active:scale-95">Ver todo</button>
+          </div>
+          <div class="absolute right-6 bottom-3 hidden md:flex pointer-events-none">
+            <span class="material-symbols-outlined text-white/15" style="font-size:140px;font-variation-settings:'FILL' 1">storefront</span>
+          </div>
+        </div>
+
+        <!-- SLIDE 1 · Bebidas -->
+        <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#1565c0 0%,#1976d2 55%,#0d47a1 100%);transform:translateX(100%)">
+          <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
+          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+            <span class="inline-block bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">REFRESCANTE</span>
+            <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Bebidas para<br/><span style="color:#90caf9">cada momento</span></h2>
+            <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Aguas, jugos, refrescos y más.</p>
+            <button onclick="setCategory('Bebidas')" class="bg-white hover:bg-blue-50 text-blue-800 font-bold text-[13px] px-6 py-2.5 rounded-lg w-max shadow-md transition-all active:scale-95">Ver bebidas</button>
+          </div>
+          <div class="absolute right-6 bottom-3 hidden md:flex pointer-events-none">
+            <span class="material-symbols-outlined text-white/15" style="font-size:140px;font-variation-settings:'FILL' 1">local_drink</span>
+          </div>
+        </div>
+
+        <!-- SLIDE 2 · Snacks -->
+        <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#e65100 0%,#f57c00 55%,#bf360c 100%);transform:translateX(200%)">
+          <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
+          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+            <span class="inline-block bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">MÁS VENDIDO</span>
+            <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Snacks<br/><span style="color:#ffe0b2">irresistibles</span></h2>
+            <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Las botanas favoritas de todos.</p>
+            <button onclick="setCategory('Snacks')" class="bg-white hover:bg-orange-50 text-orange-800 font-bold text-[13px] px-6 py-2.5 rounded-lg w-max shadow-md transition-all active:scale-95">Ver snacks</button>
+          </div>
+          <div class="absolute right-6 bottom-3 hidden md:flex pointer-events-none">
+            <span class="material-symbols-outlined text-white/15" style="font-size:140px;font-variation-settings:'FILL' 1">fastfood</span>
+          </div>
+        </div>
+
+        <!-- SLIDE 3 · Dulces -->
+        <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#6a1b9a 0%,#8e24aa 55%,#4a148c 100%);transform:translateX(300%)">
+          <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
+          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+            <span class="inline-block bg-[#fed400] text-[#6f5c00] text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">DULCE ANTOJO</span>
+            <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Dulces y<br/><span style="color:#e1bee7">chocolates</span></h2>
+            <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Porque siempre hay lugar para lo dulce.</p>
+            <button onclick="setCategory('Dulces')" class="bg-[#fed400] hover:bg-[#eac300] text-[#6f5c00] font-bold text-[13px] px-6 py-2.5 rounded-lg w-max shadow-md transition-all active:scale-95">Ver dulces</button>
+          </div>
+          <div class="absolute right-6 bottom-3 hidden md:flex pointer-events-none">
+            <span class="material-symbols-outlined text-white/15" style="font-size:140px;font-variation-settings:'FILL' 1">cookie</span>
+          </div>
+        </div>
+
+        <!-- Flecha izquierda -->
+        <button onclick="prevSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors active:scale-90">
+          <span class="material-symbols-outlined text-[22px]">chevron_left</span>
+        </button>
+
+        <!-- Flecha derecha -->
+        <button onclick="nextSlide()" class="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors active:scale-90">
+          <span class="material-symbols-outlined text-[22px]">chevron_right</span>
+        </button>
+
+        <!-- Dots -->
+        <div id="hero-dots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+          <button onclick="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300 w-6 h-1.5 bg-white"></button>
+          <button onclick="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300 w-1.5 h-1.5 bg-white/50"></button>
+          <button onclick="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300 w-1.5 h-1.5 bg-white/50"></button>
+          <button onclick="goToSlide(3)" class="hero-dot rounded-full transition-all duration-300 w-1.5 h-1.5 bg-white/50"></button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Grid de productos -->
+    <section id="products-section" class="px-4 md:px-lg py-md">
+      <div class="flex justify-between items-end mb-4">
+        <h3 id="section-title" class="font-display text-headline-lg-mobile md:text-headline-lg text-on-surface font-bold">
+          Todos los productos
+        </h3>
+      </div>
+      <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+  </main>
+</div><!-- /view-store -->
+
+
+<!-- ════════════════════════════════
+     VISTA: CARRITO
+════════════════════════════════ -->
+<div id="view-cart"
+  class="hidden w-full max-w-[1280px] mx-auto px-4 md:px-[48px] py-lg grid grid-cols-1 lg:grid-cols-12 gap-xl pb-24 lg:pb-xl">
+
+  <!-- Columna izquierda: items -->
+  <section class="lg:col-span-8 flex flex-col gap-md">
+    <div class="flex justify-between items-center mb-sm">
+      <div class="flex items-center gap-3">
+        <button onclick="showStore()" class="text-on-surface-variant hover:text-primary transition-colors active:scale-90">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 class="font-display text-headline-lg-mobile lg:text-headline-lg font-bold text-on-surface tracking-tight">
+          Tu carrito
+        </h1>
+      </div>
+      <span id="cart-count-label"
+        class="font-label-lg text-label-lg text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full">
+        0 productos
+      </span>
+    </div>
+
+    <!-- Estado vacío -->
+    <div id="cart-empty" class="flex flex-col items-center py-20 gap-4 text-on-surface-variant">
+      <span class="material-symbols-outlined text-[80px]">shopping_cart</span>
+      <p class="font-display text-headline-md font-bold">Tu carrito está vacío</p>
+      <button onclick="showStore()"
+        class="bg-primary text-on-primary font-label-lg font-bold px-8 py-3 rounded-full hover:bg-primary-container transition-colors shadow-md active:scale-95">
+        Explorar productos
+      </button>
+    </div>
+
+    <!-- Lista de items -->
+    <div id="cart-items-wrap" class="hidden flex flex-col gap-md">
+      <div id="cart-items-list" class="flex flex-col gap-md"></div>
+    </div>
+  </section>
+
+  <!-- Columna derecha: resumen del pedido -->
+  <section class="lg:col-span-4">
+    <div class="bg-surface rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.06)] p-lg lg:sticky lg:top-24 border border-outline-variant/20 flex flex-col gap-md">
+      <h2 class="font-display text-headline-md font-bold text-on-surface tracking-tight">Resumen</h2>
+
+      <div class="flex flex-col gap-y-3 pt-2">
+        <div class="flex justify-between items-center text-on-surface-variant font-body-md text-body-md">
+          <span>Subtotal</span>
+          <span id="summary-subtotal" class="font-medium text-on-surface">$0.00</span>
+        </div>
+      </div>
+
+      <div class="h-px w-full bg-outline-variant/30 my-1"></div>
+
+      <div class="flex justify-between items-end">
+        <span class="font-label-lg text-label-lg font-bold text-on-surface uppercase tracking-wider">Total</span>
+        <span id="summary-total" class="font-display text-[36px] leading-[40px] font-extrabold text-primary tracking-tight">$0.00</span>
+      </div>
+
+      <!-- Botón pagar -->
+      <button onclick="openCheckout()"
+        class="w-full bg-primary text-on-primary h-14 rounded-full font-label-lg text-label-lg font-bold hover:bg-surface-tint hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-sm mt-2 relative overflow-hidden group">
+        <span class="relative z-10 flex items-center gap-2">
+          Proceder al pago
+          <span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        </span>
+        <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:[animation:shimmer_1.5s_infinite]"></div>
+      </button>
+    </div>
+  </section>
+
+</div><!-- /view-cart -->
+
+
+<!-- ════════════════════════════════
+     NAV INFERIOR (solo mobile)
+════════════════════════════════ -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-6 py-2 pb-safe bg-surface shadow-[0_-4px_12px_rgba(0,0,0,0.06)] rounded-t-xl z-50 border-t border-outline-variant/10">
+  <button data-nav="store" onclick="showStore()"
+    class="flex flex-col items-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 font-bold transition-all active:scale-90">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">home</span>
+    <span class="font-label-md text-label-md">Inicio</span>
+  </button>
+
+  <button data-nav="cart" onclick="showCart()"
+    class="flex flex-col items-center text-on-surface-variant hover:bg-surface-variant rounded-lg p-2 relative transition-all active:scale-90">
+    <span class="material-symbols-outlined">shopping_cart</span>
+    <span class="cart-badge hidden absolute top-0.5 right-0.5 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow transition-transform"></span>
+    <span class="font-label-md text-label-md mt-1">Carrito</span>
+  </button>
+</nav>
+
+
+<!-- ════════════════════════════════
+     FOOTER (solo desktop)
+════════════════════════════════ -->
+<footer class="w-full mt-xl bg-surface-container-high border-t border-outline-variant hidden md:block">
+  <div class="flex flex-col md:flex-row justify-between items-center px-4 md:px-[48px] py-lg max-w-[1280px] mx-auto">
+    <div class="mb-4 md:mb-0">
+      <h2 class="font-display text-headline-md text-primary mb-1">OXXO Go</h2>
+      <p class="font-body-md text-body-md text-on-surface-variant">© 2024 OXXO Go. Todos los derechos reservados.</p>
+    </div>
+    <div class="flex flex-wrap gap-x-8 gap-y-2">
+      <a href="#" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Aviso de privacidad</a>
+      <a href="#" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Términos de uso</a>
+      <a href="#" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Contacto</a>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════
+     MODAL: CHECKOUT
+════════════════════════════════ -->
+<div id="modal-checkout"
+  class="hidden fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm">
+
+  <div class="w-full md:max-w-lg bg-surface rounded-t-2xl md:rounded-2xl overflow-y-auto max-h-[92vh] shadow-2xl">
+
+    <!-- Handle mobile -->
+    <div class="md:hidden flex justify-center pt-3 pb-1">
+      <div class="w-12 h-1 bg-on-surface-variant/25 rounded-full"></div>
+    </div>
+
+    <!-- Cabecera modal -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20">
+      <h2 class="font-display text-headline-md font-bold text-on-surface">Finalizar compra</h2>
+      <button onclick="closeCheckout()"
+        class="text-on-surface-variant hover:text-on-surface transition-colors rounded-full p-1 active:scale-90">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Cuerpo del formulario -->
+    <div class="px-6 py-5 flex flex-col gap-5">
+
+      <!-- Total -->
+      <div class="flex justify-between items-center bg-surface-container rounded-xl px-4 py-3">
+        <span class="font-label-lg text-label-lg text-on-surface-variant">Total a pagar</span>
+        <span id="checkout-total" class="font-display text-headline-md font-extrabold text-primary">$0.00</span>
+      </div>
+
+      <!-- Nombre del cliente -->
+      <div class="flex flex-col gap-1.5">
+        <label class="font-label-md text-label-md text-on-surface-variant font-medium">Tu nombre (opcional)</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">person</span>
+          <input id="checkout-name" type="text" placeholder="Ej: María García"
+            class="w-full h-12 bg-surface-container rounded-lg pl-10 pr-4 border-none text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary transition-all"/>
+        </div>
+      </div>
+
+      <!-- Método de pago -->
+      <div class="flex flex-col gap-2">
+        <label class="font-label-md text-label-md text-on-surface-variant font-medium">Método de pago</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-method="efectivo" onclick="selectMethod('efectivo')"
+            class="flex flex-col items-center gap-1 py-3 rounded-xl border-2 border-primary bg-primary/10 text-primary transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[22px]">payments</span>
+            <span class="font-label-md text-label-md font-bold">Efectivo</span>
+          </button>
+          <button data-method="tarjeta" onclick="selectMethod('tarjeta')"
+            class="flex flex-col items-center gap-1 py-3 rounded-xl border-2 border-surface-variant bg-surface-container text-on-surface-variant transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[22px]">credit_card</span>
+            <span class="font-label-md text-label-md font-bold">Tarjeta</span>
+          </button>
+          <button data-method="transferencia" onclick="selectMethod('transferencia')"
+            class="flex flex-col items-center gap-1 py-3 rounded-xl border-2 border-surface-variant bg-surface-container text-on-surface-variant transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[22px]">account_balance</span>
+            <span class="font-label-md text-label-md font-bold">Transf.</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sección efectivo -->
+      <div id="cash-section" class="flex flex-col gap-3">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">payments</span>
+          <input id="cash-amount" type="number" min="0" step="0.01" oninput="onCashInput()" placeholder="Monto recibido (opcional)"
+            class="w-full h-12 bg-surface-container rounded-lg pl-10 pr-4 border-none text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary transition-all"/>
+        </div>
+        <!-- Cambio -->
+        <div id="change-display" class="hidden flex justify-between items-center bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <span class="font-label-lg font-bold text-green-800">Cambio</span>
+          <span id="change-amount" class="font-display text-headline-md font-extrabold text-green-700">$0.00</span>
+        </div>
+        <!-- Monto insuficiente -->
+        <div id="insuf-display" class="hidden flex justify-between items-center bg-error-container border border-error/30 rounded-lg px-4 py-3">
+          <span class="font-label-lg font-bold text-on-error-container">Falta</span>
+          <span id="missing-amount" class="font-display text-headline-md font-extrabold text-error">$0.00</span>
+        </div>
+      </div>
+
+      <!-- Sección tarjeta -->
+      <div id="card-section" class="hidden flex flex-col gap-3">
+        <!-- Número de tarjeta -->
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">credit_card</span>
+          <input id="card-number" type="text" inputmode="numeric" oninput="fmtCardNum(this)" placeholder="4242 4242 4242 4242" maxlength="19"
+            class="w-full h-12 bg-surface-container rounded-lg pl-10 pr-4 border-none text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary tracking-widest transition-all"/>
+        </div>
+        <!-- Nombre del titular -->
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">person</span>
+          <input id="card-holder" type="text" placeholder="Nombre del titular"
+            class="w-full h-12 bg-surface-container rounded-lg pl-10 pr-4 border-none text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary transition-all"/>
+        </div>
+        <!-- Vencimiento y CVV -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">calendar_today</span>
+            <input id="card-expiry" type="text" inputmode="numeric" oninput="fmtExpiry(this)" placeholder="MM/AA" maxlength="5"
+              class="w-full h-12 bg-surface-container rounded-lg pl-10 pr-4 border-none text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary transition-all"/>
+          </div>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
+            <input id="card-cvv" type="password" inputmode="numeric" maxlength="3" placeholder="CVV"
+              class="w-full h-12 bg-surface-container rounded-lg pl-10 pr-4 border-none text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary transition-all"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón confirmar -->
+      <button id="confirm-btn" onclick="confirmCheckout()"
+        class="w-full bg-primary text-on-primary h-14 rounded-full font-label-lg font-bold hover:bg-surface-tint transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-1 shadow-lg hover:shadow-primary/30">
+        Confirmar compra <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+      </button>
+
+    </div><!-- /form body -->
+  </div><!-- /modal box -->
+</div><!-- /modal -->
+
+
+<!-- ════════════════════════════════
+     CHATBOT FAB + PANEL
+════════════════════════════════ -->
+
+<!-- Botón flotante del chat -->
+<button id="chat-fab" onclick="toggleChat()"
+  class="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-[90] w-14 h-14 bg-primary text-on-primary rounded-full shadow-xl hover:bg-surface-tint hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-90 flex items-center justify-center">
+  <span id="chat-fab-icon" class="material-symbols-outlined text-[28px]" style="font-variation-settings:'FILL' 1">chat</span>
+</button>
+
+<!-- Panel del chat -->
+<div id="chat-panel"
+  class="hidden fixed bottom-36 right-4 md:bottom-24 md:right-8 z-[89] w-[calc(100vw-2rem)] md:w-96 bg-surface rounded-2xl shadow-2xl border border-outline-variant/20 flex flex-col overflow-hidden"
+  style="max-height:480px">
+
+  <!-- Encabezado -->
+  <div class="flex items-center gap-3 px-4 py-3 bg-primary text-on-primary flex-shrink-0">
+    <div class="w-9 h-9 bg-on-primary/15 rounded-full flex items-center justify-center flex-shrink-0">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">smart_toy</span>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="font-label-lg text-label-lg font-bold leading-none">Asistente IA</p>
+      <p class="font-label-md text-label-md text-on-primary/70 mt-0.5">Recomendaciones personalizadas</p>
+    </div>
+    <button onclick="toggleChat()" class="text-on-primary/70 hover:text-on-primary transition-colors active:scale-90 p-1">
+      <span class="material-symbols-outlined text-[22px]">close</span>
+    </button>
+  </div>
+
+  <!-- Mensajes -->
+  <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-background" style="min-height:200px">
+    <!-- Mensaje de bienvenida -->
+    <div class="flex gap-2 items-end">
+      <div class="w-7 h-7 bg-primary rounded-full flex-shrink-0 flex items-center justify-center mb-0.5">
+        <span class="material-symbols-outlined text-on-primary text-[14px]" style="font-variation-settings:'FILL' 1">smart_toy</span>
+      </div>
+      <div class="bg-surface-container rounded-2xl rounded-bl-sm px-3 py-2 max-w-[82%] shadow-sm">
+        <p class="text-on-surface text-[13px] leading-relaxed">¡Hola! Soy tu asistente de tienda. Puedo ayudarte a encontrar productos, darte recomendaciones y responder tus preguntas. ¿En qué te puedo ayudar?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sugerencias rápidas -->
+  <div id="chat-suggestions" class="flex gap-2 px-3 py-2 overflow-x-auto hide-scrollbar border-t border-outline-variant/10 bg-surface flex-shrink-0">
+    <button onclick="useSuggestion('¿Qué bebidas tienen?')" class="whitespace-nowrap text-[12px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors">Bebidas</button>
+    <button onclick="useSuggestion('¿Qué snacks recomiendan?')" class="whitespace-nowrap text-[12px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors">Snacks</button>
+    <button onclick="useSuggestion('¿Cuáles son los productos más baratos?')" class="whitespace-nowrap text-[12px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors">Más baratos</button>
+    <button onclick="useSuggestion('¿Qué dulces tienen disponibles?')" class="whitespace-nowrap text-[12px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors">Dulces</button>
+  </div>
+
+  <!-- Input -->
+  <div class="flex items-center gap-2 px-3 py-3 border-t border-outline-variant/20 bg-surface flex-shrink-0">
+    <input id="chat-input" type="text" placeholder="Escribe un mensaje..."
+      onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage()}"
+      class="flex-1 h-10 bg-surface-container rounded-full px-4 border-none text-on-surface text-[14px] placeholder-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary transition-all"/>
+    <button id="chat-send-btn" onclick="sendChatMessage()"
+      class="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center hover:bg-primary-container transition-colors active:scale-90 flex-shrink-0">
+      <span class="material-symbols-outlined text-[20px]">send</span>
+    </button>
+  </div>
+
+</div><!-- /chat-panel -->
+
+
+<!-- ════════════════════════════════
+     TOASTS
+════════════════════════════════ -->
+<div id="toast-success"
+  class="toast hidden fixed bottom-28 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-on-surface text-inverse-on-surface px-6 py-3 rounded-full shadow-xl flex items-center gap-3 whitespace-nowrap">
+  <span class="material-symbols-outlined text-secondary-container text-[20px]" style="font-variation-settings:'FILL' 1">check_circle</span>
+  <span class="toast-msg font-label-lg font-bold"></span>
+</div>
+
+<div id="toast-error"
+  class="toast hidden fixed bottom-28 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-error text-on-error px-6 py-3 rounded-full shadow-xl flex items-center gap-3 whitespace-nowrap">
+  <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">error</span>
+  <span class="toast-msg font-label-lg font-bold"></span>
+</div>
+
+
+<script src="{{ url_for('static', filename='js/cliente.js') }}"></script>
+</body>
+</html>

@@ -5,11 +5,13 @@ from ..database.db import db
 from ..models.sale import Sale
 from ..models.sale_item import SaleItem
 from ..models.product import Product
+from .payment_service import process_payment
 
-def register_sale(items_data, client_name=""):
+def register_sale(items_data, client_name="", payment_method="efectivo"):
     """
     items_data: lista de {product_id, quantity}
     client_name: nombre del cliente para el ticket
+    payment_method: "efectivo" | "tarjeta" | "transferencia"
     Crea la venta, descuenta stock y retorna Sale.
     """
     total = 0.0
@@ -31,6 +33,11 @@ def register_sale(items_data, client_name=""):
         db.session.add(si)
 
     sale.total_amount = total
+
+    payment_result = process_payment(payment_method, total)
+    sale.payment_method = payment_result["method"]
+    sale.payment_status = payment_result["status"]
+
     db.session.commit()
     return sale
 

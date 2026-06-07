@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>{% block title %}VentaIA{% endblock %}</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#2f2ebe",
+            "inverse-primary": "#494bd6",
+            "error": "#ffb4ab",
+            "inverse-surface": "#e5e1e4",
+            "on-primary": "#1000a9",
+            "on-primary-fixed": "#07006c",
+            "error-container": "#93000a",
+            "on-primary-container": "#0d0096",
+            "on-tertiary-fixed-variant": "#005137",
+            "surface": "#131315",
+            "tertiary-fixed": "#68fcbf",
+            "inverse-on-surface": "#313032",
+            "surface-tint": "#c0c1ff",
+            "background": "#131315",
+            "outline-variant": "#464554",
+            "on-error": "#690005",
+            "secondary-container": "#2f3aa3",
+            "surface-variant": "#353437",
+            "surface-bright": "#39393b",
+            "on-background": "#e5e1e4",
+            "secondary-fixed": "#e0e0ff",
+            "on-tertiary": "#003825",
+            "text-secondary": "#9698a3",
+            "tertiary-fixed-dim": "#45dfa4",
+            "on-surface": "#e5e1e4",
+            "on-secondary-fixed": "#000767",
+            "on-tertiary-fixed": "#002114",
+            "on-secondary": "#131e8c",
+            "tertiary": "#45dfa4",
+            "primary-fixed": "#e1e0ff",
+            "border-subtle": "#2a2c34",
+            "surface-container-lowest": "#0e0e10",
+            "tertiary-container": "#00a574",
+            "surface-elevated": "#18191e",
+            "on-error-container": "#ffdad6",
+            "secondary-fixed-dim": "#bdc2ff",
+            "surface-overlay": "#1f2127",
+            "secondary": "#bdc2ff",
+            "surface-dim": "#131315",
+            "surface-container-low": "#1c1b1d",
+            "outline": "#908fa0",
+            "surface-container-highest": "#353437",
+            "primary-container": "#8083ff",
+            "text-muted": "#5d5f6b",
+            "surface-container-high": "#2a2a2c",
+            "on-surface-variant": "#c7c4d7",
+            "primary": "#c0c1ff",
+            "on-secondary-container": "#a8afff",
+            "primary-fixed-dim": "#c0c1ff",
+            "on-tertiary-container": "#003120",
+            "text-primary": "#e4e5ea",
+            "surface-container": "#201f21",
+            "on-secondary-fixed-variant": "#2f3aa3",
+            "surface-base": "#111114"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "sans": ["DM Sans", "sans-serif"],
+            "mono": ["DM Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}"/>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+{% block content %}{% endblock %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

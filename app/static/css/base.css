@@ -1,0 +1,4 @@
+/* Base shared styles for VentaIA — loaded by base.html on all pages */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
