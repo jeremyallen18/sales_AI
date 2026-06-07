@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/api_config.dart';
 import '../main.dart';
@@ -14,7 +15,7 @@ class _Msg {
   final String text;
   final bool isUser;
   final bool isError;
-  final List<Product> mentioned; // productos mencionados por el AI
+  final List<Product> mentioned;
 
   const _Msg({
     required this.text,
@@ -54,7 +55,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           'productos y ayudarte a encontrar lo que buscas. ¿En qué te ayudo?',
       isUser: false,
     ));
-    // Cargar productos si aún no están disponibles
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final pp = context.read<ProductsProvider>();
       if (pp.allProducts.isEmpty && !pp.loading) pp.load();
@@ -68,13 +68,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     super.dispose();
   }
 
-  /// Detecta qué productos del catálogo son mencionados en el texto del AI.
   List<Product> _findMentioned(String text, List<Product> catalog) {
     final lower = text.toLowerCase();
     return catalog.where((p) {
-      // Solo coincide si el nombre tiene al menos 4 caracteres (evita falsos positivos)
-      return p.name.length >= 4 &&
-          lower.contains(p.name.toLowerCase());
+      return p.name.length >= 4 && lower.contains(p.name.toLowerCase());
     }).toList();
   }
 
@@ -128,13 +125,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.navyBg,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Row(
+        automaticallyImplyLeading: false,
+        title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.smart_toy_outlined,
-                size: 20, color: AppColors.catHeader),
+          children: const [
+            Icon(Icons.smart_toy_outlined, size: 20, color: Colors.white),
             SizedBox(width: 8),
             Text('Asistente IA'),
           ],
@@ -142,7 +139,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       ),
       body: Column(
         children: [
-          // ── Historial ──
           Expanded(
             child: ListView.builder(
               controller: _scroll,
@@ -154,12 +150,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               },
             ),
           ),
-
-          // ── Sugerencias (solo al inicio) ──
           if (_msgs.length == 1 && !_thinking)
             _SuggestionRow(suggestions: _suggestions, onTap: _send),
-
-          // ── Input ──
           _InputBar(ctrl: _ctrl, onSend: _send, enabled: !_thinking),
         ],
       ),
@@ -167,7 +159,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   }
 }
 
-// ── Tile completo (burbuja + tarjetas de producto) ────────────────────────────
+// ── Tile (burbuja + tarjetas de producto) ─────────────────────────────────────
 
 class _MsgTile extends StatelessWidget {
   final _Msg msg;
@@ -179,7 +171,6 @@ class _MsgTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _Bubble(msg: msg),
-        // Tarjetas de productos recomendados solo para mensajes del AI
         if (!msg.isUser && msg.mentioned.isNotEmpty)
           _ProductCards(products: msg.mentioned),
       ],
@@ -196,12 +187,16 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color bg = msg.isError
-        ? AppColors.danger.withValues(alpha: 0.2)
+        ? AppColors.error.withValues(alpha: 0.12)
         : msg.isUser
-            ? AppColors.accent.withValues(alpha: 0.9)
-            : AppColors.navyCard;
+            ? AppColors.primary
+            : AppColors.surfaceContainer;
 
-    final Color textColor = msg.isError ? AppColors.danger : Colors.white;
+    final Color textColor = msg.isError
+        ? AppColors.error
+        : msg.isUser
+            ? Colors.white
+            : AppColors.onSurface;
 
     return Align(
       alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -218,21 +213,25 @@ class _Bubble extends StatelessWidget {
             bottomLeft: Radius.circular(msg.isUser ? 16 : 4),
             bottomRight: Radius.circular(msg.isUser ? 4 : 16),
           ),
-          border: !msg.isUser ? Border.all(color: AppColors.navyLight) : null,
+          border: !msg.isUser && !msg.isError
+              ? Border.all(color: AppColors.outline)
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!msg.isUser) ...[
-              const Icon(Icons.smart_toy_outlined,
-                  size: 15, color: AppColors.catHeader),
+              Icon(Icons.smart_toy_outlined,
+                  size: 15, color: AppColors.primary),
               const SizedBox(width: 6),
             ],
             Flexible(
-              child: Text(msg.text,
-                  style: TextStyle(
-                      color: textColor, fontSize: 14, height: 1.45)),
+              child: Text(
+                msg.text,
+                style: TextStyle(
+                    color: textColor, fontSize: 14, height: 1.45),
+              ),
             ),
           ],
         ),
@@ -254,13 +253,15 @@ class _ProductCards extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 2, bottom: 6),
-            child: Text('Productos mencionados',
-                style: TextStyle(
-                    color: AppColors.catHeader,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
+          Padding(
+            padding: const EdgeInsets.only(left: 2, bottom: 6),
+            child: Text(
+              'Productos mencionados',
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600),
+            ),
           ),
           SizedBox(
             height: 112,
@@ -291,20 +292,25 @@ class _ProductChip extends StatelessWidget {
     return Container(
       width: 150,
       decoration: BoxDecoration(
-        color: AppColors.navyCard,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: inCart ? AppColors.cartAmber : AppColors.navyLight,
+          color: inCart ? AppColors.primary : AppColors.outline,
           width: inCart ? 1.5 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Imagen ──
           ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(11)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
             child: hasImage
                 ? CachedNetworkImage(
                     imageUrl: imgUrl,
@@ -316,8 +322,6 @@ class _ProductChip extends StatelessWidget {
                   )
                 : _imgPlaceholder(),
           ),
-
-          // ── Info + botón ──
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 5, 8, 5),
             child: Column(
@@ -328,7 +332,7 @@ class _ProductChip extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.onSurface,
                       fontSize: 11,
                       fontWeight: FontWeight.w600),
                 ),
@@ -336,11 +340,13 @@ class _ProductChip extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('\$${product.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            color: AppColors.cartAmber,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      '\$${product.price.toStringAsFixed(2)}',
+                      style: GoogleFonts.montserrat(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold),
+                    ),
                     GestureDetector(
                       onTap: () {
                         if (inCart) {
@@ -360,15 +366,15 @@ class _ProductChip extends StatelessWidget {
                             horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
                           color: inCart
-                              ? AppColors.cartAmber.withValues(alpha: 0.15)
-                              : AppColors.accent,
+                              ? AppColors.secondary
+                              : AppColors.primary,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           inCart ? '✓ En carrito' : '+ Agregar',
                           style: TextStyle(
                             color: inCart
-                                ? AppColors.cartAmber
+                                ? AppColors.onSecondary
                                 : Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -389,9 +395,9 @@ class _ProductChip extends StatelessWidget {
   Widget _imgPlaceholder() => Container(
         height: 56,
         width: double.infinity,
-        color: AppColors.navyLight,
+        color: AppColors.surfaceContainerLow,
         child: const Icon(Icons.inventory_2_outlined,
-            color: AppColors.textSec, size: 24),
+            color: AppColors.onSurfaceVariant, size: 24),
       );
 }
 
@@ -430,15 +436,15 @@ class _TypingBubbleState extends State<_TypingBubble>
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.navyCard,
+          color: AppColors.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.navyLight),
+          border: Border.all(color: AppColors.outline),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.smart_toy_outlined,
-                size: 15, color: AppColors.catHeader),
+                size: 15, color: AppColors.primary),
             const SizedBox(width: 8),
             AnimatedBuilder(
               animation: _ac,
@@ -451,8 +457,7 @@ class _TypingBubbleState extends State<_TypingBubble>
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: AppColors.catHeader
-                          .withValues(alpha: 0.4 + 0.6 * v),
+                      color: AppColors.primary.withValues(alpha: 0.3 + 0.7 * v),
                       shape: BoxShape.circle,
                     ),
                   );
@@ -476,7 +481,7 @@ class _SuggestionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 42,
+      height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -485,15 +490,20 @@ class _SuggestionRow extends StatelessWidget {
         itemBuilder: (_, i) => GestureDetector(
           onTap: () => onTap(suggestions[i]),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.navyCard,
+              color: AppColors.primaryContainer,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.navyLight),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
             ),
-            child: Text(suggestions[i],
-                style: const TextStyle(
-                    color: AppColors.catHeader, fontSize: 12)),
+            child: Text(
+              suggestions[i],
+              style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
+            ),
           ),
         ),
       ),
@@ -514,9 +524,9 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      decoration: const BoxDecoration(
-        color: AppColors.navyCard,
-        border: Border(top: BorderSide(color: AppColors.divider)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        border: Border(top: BorderSide(color: AppColors.outline)),
       ),
       child: SafeArea(
         top: false,
@@ -527,12 +537,14 @@ class _InputBar extends StatelessWidget {
                 controller: ctrl,
                 enabled: enabled,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: AppColors.onSurface, fontSize: 14),
                 decoration: const InputDecoration(
                   hintText: 'Escribe tu pregunta...',
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
+                  fillColor: Colors.transparent,
+                  filled: true,
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                 ),
@@ -548,12 +560,14 @@ class _InputBar extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: enabled ? AppColors.accent : AppColors.navyLight,
+                  color: enabled ? AppColors.primary : AppColors.outline,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.send_rounded,
-                    color: enabled ? Colors.white : AppColors.textSec,
-                    size: 20),
+                child: Icon(
+                  Icons.send_rounded,
+                  color: enabled ? Colors.white : AppColors.onSurfaceVariant,
+                  size: 20,
+                ),
               ),
             ),
           ],

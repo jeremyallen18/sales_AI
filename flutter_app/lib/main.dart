@@ -1,33 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/products_provider.dart';
-import 'screens/catalog_screen.dart';
+import 'widgets/main_shell.dart';
 import 'services/settings_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SettingsService.init();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: AppColors.navyBg,
+    statusBarColor: AppColors.primary,
     statusBarIconBrightness: Brightness.light,
   ));
   runApp(const SalesStoreApp());
 }
 
-// ── Paleta de colores ──────────────────────────────────────────────────────
+// ── Paleta OXXO ───────────────────────────────────────────────────────────────
 class AppColors {
-  static const Color navyBg     = Color(0xFF0B1D3A);
-  static const Color navyCard   = Color(0xFF122444);
-  static const Color navyLight  = Color(0xFF1A3360);
-  static const Color accent     = Color(0xFF2979FF);
-  static const Color cartAmber  = Color(0xFFFFD54F);
-  static const Color catHeader  = Color(0xFF90CAF9);  // light blue para ">"
-  static const Color textSec    = Color(0xFF8AADCF);
-  static const Color divider    = Color(0xFF1E3A5F);
-  static const Color success    = Color(0xFF4CAF50);
-  static const Color danger     = Color(0xFFE53935);
+  static const Color primary              = Color(0xFFB5000B);
+  static const Color primaryContainer     = Color(0xFFFFDAD5);
+  static const Color onPrimary            = Color(0xFFFFFFFF);
+  static const Color secondary            = Color(0xFFFFD400);
+  static const Color onSecondary          = Color(0xFF6F5C00);
+  static const Color surface              = Color(0xFFFBF9F8);
+  static const Color surfaceContainer     = Color(0xFFF0EDED);
+  static const Color surfaceContainerLow  = Color(0xFFF6F3F2);
+  static const Color onSurface           = Color(0xFF1B1C1C);
+  static const Color onSurfaceVariant     = Color(0xFF5E3F3B);
+  static const Color outline              = Color(0xFFE4E2E1);
+  static const Color outlineVariant       = Color(0xFFE9BCB6);
+  static const Color error               = Color(0xFFBA1A1A);
+  static const Color success             = Color(0xFF4CAF50);
 }
 
 class SalesStoreApp extends StatelessWidget {
@@ -44,82 +49,85 @@ class SalesStoreApp extends StatelessWidget {
         title: 'Tienda',
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
-        home: const CatalogScreen(),
+        home: const MainShell(),
       ),
     );
   }
 
   ThemeData _buildTheme() {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.navyBg,
-      colorScheme: const ColorScheme.dark(
-        surface: AppColors.navyBg,
-        primary: AppColors.accent,
-        secondary: AppColors.cartAmber,
-        onPrimary: Colors.white,
-        onSurface: Colors.white,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.surface,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primary,
+        onPrimary: AppColors.onPrimary,
+        primaryContainer: AppColors.primaryContainer,
+        secondary: AppColors.secondary,
+        onSecondary: AppColors.onSecondary,
+        surface: AppColors.surface,
+        onSurface: AppColors.onSurface,
+        error: AppColors.error,
+        outline: AppColors.outline,
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.navyBg,
+    );
+
+    return base.copyWith(
+      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+        bodyColor: AppColors.onSurface,
+        displayColor: AppColors.onSurface,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(
+        titleTextStyle: GoogleFonts.montserrat(
           color: Colors.white,
           fontSize: 18,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
+          fontWeight: FontWeight.w800,
         ),
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      drawerTheme: const DrawerThemeData(
-        backgroundColor: AppColors.navyCard,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.navyCard,
+        color: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.divider,
-        thickness: 1,
-      ),
+      dividerTheme: const DividerThemeData(color: AppColors.outline, thickness: 1),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.navyCard,
+        fillColor: AppColors.surfaceContainerLow,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.navyLight),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.navyLight),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.accent, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.textSec),
-        hintStyle: const TextStyle(color: AppColors.textSec),
+        labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
+        hintStyle: const TextStyle(color: AppColors.onSurfaceVariant),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.catHeader),
+        style: TextButton.styleFrom(foregroundColor: AppColors.primary),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+            borderRadius: BorderRadius.circular(24),
+          ),
         ),
       ),
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: AppColors.navyLight,
+        backgroundColor: AppColors.onSurface,
         contentTextStyle: TextStyle(color: Colors.white),
         behavior: SnackBarBehavior.floating,
       ),

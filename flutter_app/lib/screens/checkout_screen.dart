@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/cart_provider.dart';
@@ -13,30 +15,76 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _nameCtrl = TextEditingController();
+  final _cashCtrl = TextEditingController();
+  final _cardNumberCtrl = TextEditingController();
+  final _cardHolderCtrl = TextEditingController();
+  final _expiryCtrl = TextEditingController();
+  final _cvvCtrl = TextEditingController();
+  String _selectedMethod = 'efectivo';
   bool _processing = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _cashCtrl.dispose();
+    _cardNumberCtrl.dispose();
+    _cardHolderCtrl.dispose();
+    _expiryCtrl.dispose();
+    _cvvCtrl.dispose();
     super.dispose();
   }
 
+  double get _cashReceived => double.tryParse(_cashCtrl.text) ?? 0.0;
+  double _change(double total) =>
+      (_cashReceived - total).clamp(0.0, double.infinity);
+
   Future<void> _submit() async {
+    final cart = context.read<CartProvider>();
+    if (_selectedMethod == 'efectivo' && _cashCtrl.text.isNotEmpty) {
+      if (_cashReceived < cart.total) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('El monto recibido es menor al total'),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
+    }
+    if (_selectedMethod == 'tarjeta') {
+      if (_cardNumberCtrl.text.replaceAll(' ', '').length < 16 ||
+          _cardHolderCtrl.text.trim().isEmpty ||
+          _expiryCtrl.text.length < 5 ||
+          _cvvCtrl.text.length < 3) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Completa todos los datos de la tarjeta'),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
+    }
+
     setState(() => _processing = true);
     try {
-      final cart = context.read<CartProvider>();
-      final result = await cart.checkout(_nameCtrl.text.trim());
+      final result =
+          await cart.checkout(_nameCtrl.text.trim(), _selectedMethod);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => OrderSuccessScreen(sale: result)),
+        MaterialPageRoute(
+          builder: (_) => OrderSuccessScreen(
+            sale: result,
+            cashReceived:
+                _selectedMethod == 'efectivo' && _cashCtrl.text.isNotEmpty
+                    ? _cashReceived
+                    : null,
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.danger,
+          backgroundColor: AppColors.error,
         ),
       );
     } finally {
@@ -50,20 +98,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final items = cart.items.values.toList();
 
     return Scaffold(
-      backgroundColor: AppColors.navyBg,
-      appBar: AppBar(title: const Text('FINALIZAR COMPRA')),
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(title: const Text('Finalizar compra')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── Resumen ──
-          const _SectionTitle('Resumen del pedido'),
+          _SectionTitle('Resumen del pedido'),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.navyCard,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.navyLight),
+              border: Border.all(color: AppColors.outline),
             ),
             child: Column(
               children: [
@@ -75,32 +123,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: Text(
                               '${item.product.name} × ${item.quantity}',
                               style: const TextStyle(
-                                  color: Colors.white, fontSize: 13),
+                                  color: AppColors.onSurface, fontSize: 13),
                             ),
                           ),
                           Text(
                             '\$${item.subtotal.toStringAsFixed(2)}',
                             style: const TextStyle(
-                                color: AppColors.textSec,
+                                color: AppColors.onSurfaceVariant,
                                 fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
                     )),
-                const Divider(color: AppColors.divider),
+                const Divider(color: AppColors.outline),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold)),
-                    Text('\$${cart.total.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            color: AppColors.cartAmber,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      'Total',
+                      style: GoogleFonts.montserrat(
+                          color: AppColors.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      '\$${cart.total.toStringAsFixed(2)}',
+                      style: GoogleFonts.montserrat(
+                          color: AppColors.primary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700),
+                    ),
                   ],
                 ),
               ],
@@ -109,19 +161,84 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const SizedBox(height: 24),
 
           // ── Datos del cliente ──
-          const _SectionTitle('Tus datos'),
+          _SectionTitle('Tus datos'),
           const SizedBox(height: 10),
           TextField(
             controller: _nameCtrl,
             textCapitalization: TextCapitalization.words,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: AppColors.onSurface),
             decoration: const InputDecoration(
               labelText: 'Tu nombre (opcional)',
               hintText: 'Ej: María García',
               prefixIcon:
-                  Icon(Icons.person_outline, color: AppColors.textSec),
+                  Icon(Icons.person_outline, color: AppColors.onSurfaceVariant),
             ),
           ),
+          const SizedBox(height: 24),
+
+          // ── Método de pago ──
+          _SectionTitle('Método de pago'),
+          const SizedBox(height: 10),
+          _PaymentMethodSelector(
+            selected: _selectedMethod,
+            onChanged: (m) => setState(() {
+              _selectedMethod = m;
+              _cashCtrl.clear();
+              _cardNumberCtrl.clear();
+              _cardHolderCtrl.clear();
+              _expiryCtrl.clear();
+              _cvvCtrl.clear();
+            }),
+          ),
+
+          // ── Campos de tarjeta ──
+          if (_selectedMethod == 'tarjeta') ...[
+            const SizedBox(height: 14),
+            _CardForm(
+              cardNumberCtrl: _cardNumberCtrl,
+              cardHolderCtrl: _cardHolderCtrl,
+              expiryCtrl: _expiryCtrl,
+              cvvCtrl: _cvvCtrl,
+            ),
+          ],
+
+          // ── Campo de efectivo ──
+          if (_selectedMethod == 'efectivo') ...[
+            const SizedBox(height: 14),
+            TextField(
+              controller: _cashCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))
+              ],
+              style: const TextStyle(color: AppColors.onSurface),
+              decoration: const InputDecoration(
+                labelText: 'Monto recibido (opcional)',
+                hintText: 'Ej: 100.00',
+                prefixIcon: Icon(Icons.payments_outlined,
+                    color: AppColors.onSurfaceVariant),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (_cashCtrl.text.isNotEmpty && _cashReceived >= cart.total) ...[
+              const SizedBox(height: 10),
+              _StatusBox(
+                color: AppColors.success,
+                label: 'Cambio',
+                value: '\$${_change(cart.total).toStringAsFixed(2)}',
+              ),
+            ],
+            if (_cashCtrl.text.isNotEmpty && _cashReceived < cart.total) ...[
+              const SizedBox(height: 10),
+              _StatusBox(
+                color: AppColors.error,
+                label: 'Falta',
+                value: '\$${(cart.total - _cashReceived).toStringAsFixed(2)}',
+              ),
+            ],
+          ],
+
           const SizedBox(height: 32),
 
           // ── Confirmar ──
@@ -142,8 +259,237 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       style: TextStyle(fontSize: 16)),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+}
+
+// ── Caja de estado (cambio / falta) ──────────────────────────────────────────
+
+class _StatusBox extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String value;
+  const _StatusBox(
+      {required this.color, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          Text(value,
+              style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Selector de método de pago ────────────────────────────────────────────────
+
+class _PaymentMethodSelector extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+  const _PaymentMethodSelector(
+      {required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    const methods = [
+      ('efectivo', Icons.payments_outlined, 'Efectivo'),
+      ('tarjeta', Icons.credit_card_outlined, 'Tarjeta'),
+      ('transferencia', Icons.account_balance_outlined, 'Transferencia'),
+    ];
+
+    return Row(
+      children: methods.map((m) {
+        final isSelected = selected == m.$1;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => onChanged(m.$1),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primaryContainer
+                      : AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.outline,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(m.$2,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.onSurfaceVariant,
+                        size: 22),
+                    const SizedBox(height: 4),
+                    Text(
+                      m.$3,
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.onSurfaceVariant,
+                        fontSize: 11,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ── Formatter: número de tarjeta XXXX XXXX XXXX XXXX ──
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limited = digits.length > 16 ? digits.substring(0, 16) : digits;
+    final buffer = StringBuffer();
+    for (int i = 0; i < limited.length; i++) {
+      if (i > 0 && i % 4 == 0) buffer.write(' ');
+      buffer.write(limited[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// ── Formatter: fecha MM/YY ──
+class _ExpiryFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limited = digits.length > 4 ? digits.substring(0, 4) : digits;
+    final buffer = StringBuffer();
+    for (int i = 0; i < limited.length; i++) {
+      if (i == 2) buffer.write('/');
+      buffer.write(limited[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// ── Formulario de tarjeta ──────────────────────────────────────────────────────
+class _CardForm extends StatelessWidget {
+  final TextEditingController cardNumberCtrl;
+  final TextEditingController cardHolderCtrl;
+  final TextEditingController expiryCtrl;
+  final TextEditingController cvvCtrl;
+
+  const _CardForm({
+    required this.cardNumberCtrl,
+    required this.cardHolderCtrl,
+    required this.expiryCtrl,
+    required this.cvvCtrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          controller: cardNumberCtrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [_CardNumberFormatter()],
+          style: const TextStyle(color: AppColors.onSurface, letterSpacing: 2),
+          decoration: const InputDecoration(
+            labelText: 'Número de tarjeta',
+            hintText: '4242 4242 4242 4242',
+            prefixIcon: Icon(Icons.credit_card_outlined,
+                color: AppColors.onSurfaceVariant),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: cardHolderCtrl,
+          textCapitalization: TextCapitalization.words,
+          style: const TextStyle(color: AppColors.onSurface),
+          decoration: const InputDecoration(
+            labelText: 'Nombre del titular',
+            hintText: 'Ej: Juan Pérez',
+            prefixIcon: Icon(Icons.person_outline,
+                color: AppColors.onSurfaceVariant),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: expiryCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [_ExpiryFormatter()],
+                style: const TextStyle(color: AppColors.onSurface),
+                decoration: const InputDecoration(
+                  labelText: 'Vencimiento',
+                  hintText: 'MM/YY',
+                  prefixIcon: Icon(Icons.calendar_today_outlined,
+                      color: AppColors.onSurfaceVariant),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: cvvCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(3),
+                ],
+                obscureText: true,
+                style: const TextStyle(color: AppColors.onSurface),
+                decoration: const InputDecoration(
+                  labelText: 'CVV',
+                  hintText: '123',
+                  prefixIcon: Icon(Icons.lock_outline,
+                      color: AppColors.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -155,10 +501,10 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
-            color: AppColors.catHeader,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5),
+        style: GoogleFonts.montserrat(
+          color: AppColors.onSurface,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
       );
 }

@@ -1,23 +1,25 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/api_config.dart';
 import '../main.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/products_provider.dart';
-import 'cart_screen.dart';
-import 'chatbot_screen.dart';
 import 'settings_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
-  const CatalogScreen({super.key});
+  final VoidCallback? onGoToCart;
+  const CatalogScreen({super.key, this.onGoToCart});
 
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
 }
 
 class _CatalogScreenState extends State<CatalogScreen> {
+  String? _selectedCategory;
+
   @override
   void initState() {
     super.initState();
@@ -26,67 +28,37 @@ class _CatalogScreenState extends State<CatalogScreen> {
     });
   }
 
-  void _openCart() =>
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
-
   @override
   Widget build(BuildContext context) {
     final products = context.watch<ProductsProvider>();
-    final cart = context.watch<CartProvider>();
 
     return Scaffold(
-      backgroundColor: AppColors.navyBg,
-      appBar: _buildAppBar(cart),
-      drawer: _AppDrawer(onReload: () => context.read<ProductsProvider>().load()),
-      body: _buildBody(products),
-      floatingActionButton: _CartFab(count: cart.count, onTap: _openCart),
-    );
-  }
-
-  // ── AppBar ──────────────────────────────────────────────────────────────
-
-  PreferredSizeWidget _buildAppBar(CartProvider cart) {
-    return AppBar(
-      backgroundColor: AppColors.navyBg,
-      leading: Builder(
-        builder: (ctx) => IconButton(
-          icon: const Icon(Icons.menu, size: 26),
-          onPressed: () => Scaffold.of(ctx).openDrawer(),
-        ),
-      ),
-      title: const Text('MENÚ'),
-      actions: [
-        if (cart.count > 0)
-          Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.cartAmber,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${cart.count} en carrito',
-                  style: const TextStyle(
-                    color: AppColors.navyBg,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Tienda'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Configuración',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+              if (mounted) context.read<ProductsProvider>().load();
+            },
           ),
-      ],
+        ],
+      ),
+      body: _buildBody(products),
     );
   }
-
-  // ── Body ────────────────────────────────────────────────────────────────
 
   Widget _buildBody(ProductsProvider products) {
     if (products.loading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -97,158 +69,370 @@ class _CatalogScreenState extends State<CatalogScreen> {
       );
     }
 
-    if (products.allProducts.isEmpty) {
-      return const Center(
-        child: Text('Sin productos disponibles',
-            style: TextStyle(color: AppColors.textSec)),
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => context.read<ProductsProvider>().load(),
+      child: CustomScrollView(
+        slivers: [
+          // ── Banner Flash Sale ──
+          const SliverToBoxAdapter(child: _FlashSaleBanner()),
+
+          // ── Categorías ──
+          if (products.byCategory.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _CategoryRow(
+                categories: products.byCategory.keys.toList()..sort(),
+                selected: _selectedCategory,
+                onSelect: (cat) => setState(() =>
+                    _selectedCategory =
+                        (_selectedCategory == cat) ? null : cat),
+              ),
+            ),
+
+          // ── Título de sección ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                _selectedCategory ?? 'Todos los productos',
+                style: GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ),
+          ),
+
+          // ── Grid ──
+          _buildProductGrid(products),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductGrid(ProductsProvider products) {
+    final items = _selectedCategory != null
+        ? (products.byCategory[_selectedCategory] ?? <Product>[])
+        : products.allProducts;
+
+    if (items.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Center(
+            child: Text(
+              'Sin productos disponibles',
+              style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14),
+            ),
+          ),
+        ),
       );
     }
 
-    return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.navyCard,
-      onRefresh: () => context.read<ProductsProvider>().load(),
-      child: _MenuList(productsByCategory: products.byCategory),
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.72,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (_, i) => _ProductCard(product: items[i]),
+          childCount: items.length,
+        ),
+      ),
     );
   }
 }
 
-// ── Lista estilo menú ────────────────────────────────────────────────────────
+// ── Banner Flash Sale ─────────────────────────────────────────────────────────
 
-class _MenuList extends StatelessWidget {
-  final Map<String, List<Product>> productsByCategory;
-  const _MenuList({required this.productsByCategory});
-
-  @override
-  Widget build(BuildContext context) {
-    final categories = productsByCategory.keys.toList()..sort();
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 120),
-      itemCount: categories.length,
-      itemBuilder: (_, i) {
-        final cat = categories[i];
-        final items = productsByCategory[cat]!;
-        return _CategorySection(category: cat, products: items);
-      },
-    );
-  }
-}
-
-// ── Sección de categoría ─────────────────────────────────────────────────────
-
-class _CategorySection extends StatefulWidget {
-  final String category;
-  final List<Product> products;
-  const _CategorySection({required this.category, required this.products});
-
-  @override
-  State<_CategorySection> createState() => _CategorySectionState();
-}
-
-class _CategorySectionState extends State<_CategorySection> {
-  bool _expanded = true;
+class _FlashSaleBanner extends StatelessWidget {
+  const _FlashSaleBanner();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Cabecera de categoría ──
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      height: 160,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xBB000000), Colors.transparent],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '>${widget.category}',
-                  style: const TextStyle(
-                    color: AppColors.catHeader,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'OFERTA DEL DÍA',
+                    style: GoogleFonts.montserrat(
+                      color: AppColors.onSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                  color: AppColors.catHeader,
-                  size: 18,
+                const SizedBox(height: 10),
+                Text(
+                  'Lo mejor\nde la tienda',
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Descubre nuestros productos',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
           ),
-        ),
-
-        // ── Productos ──
-        if (_expanded)
-          ...widget.products.map((p) => _ProductRow(product: p)),
-
-        // ── Separador ──
-        const Divider(height: 1, color: AppColors.divider),
-      ],
+        ],
+      ),
     );
   }
 }
 
-// ── Fila de producto ─────────────────────────────────────────────────────────
+// ── Selector de categorías ────────────────────────────────────────────────────
 
-class _ProductRow extends StatelessWidget {
+class _CategoryRow extends StatelessWidget {
+  final List<String> categories;
+  final String? selected;
+  final ValueChanged<String> onSelect;
+
+  const _CategoryRow({
+    required this.categories,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  static const _catIcons = <String, IconData>{
+    'snack': Icons.cookie_outlined,
+    'botana': Icons.set_meal_outlined,
+    'bebida': Icons.local_drink_outlined,
+    'refresco': Icons.water_drop_outlined,
+    'lácteo': Icons.egg_outlined,
+    'confite': Icons.cake_outlined,
+    'dulce': Icons.icecream_outlined,
+    'abarrote': Icons.shopping_bag_outlined,
+    'limpieza': Icons.cleaning_services_outlined,
+    'higiene': Icons.soap_outlined,
+    'pharma': Icons.medical_services_outlined,
+    'caliente': Icons.fastfood_outlined,
+  };
+
+  IconData _iconFor(String cat) {
+    final lower = cat.toLowerCase();
+    for (final entry in _catIcons.entries) {
+      if (lower.contains(entry.key)) return entry.value;
+    }
+    return Icons.category_outlined;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 88,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) {
+          final cat = categories[i];
+          final isSelected = selected == cat;
+          return GestureDetector(
+            onTap: () => onSelect(cat),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.surfaceContainerLow,
+                    border:
+                        Border.all(color: AppColors.outline, width: 1),
+                  ),
+                  child: Icon(
+                    _iconFor(cat),
+                    color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    cat,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Tarjeta de producto OXXO ──────────────────────────────────────────────────
+
+class _ProductCard extends StatelessWidget {
   final Product product;
-  const _ProductRow({required this.product});
+  const _ProductCard({required this.product});
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final inCart = cart.items.containsKey(product.id);
-    final qty = inCart ? cart.items[product.id]!.quantity : 0;
-    final hasImage = product.imageUrl.isNotEmpty;
 
-    return InkWell(
+    return GestureDetector(
       onTap: () => _handleTap(context, cart, inCart),
-      splashColor: AppColors.navyLight,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Row(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Miniatura o bullet ──
-            _ProductThumb(imageUrl: product.imageUrl, inCart: inCart,
-                hasImage: hasImage),
-            const SizedBox(width: 10),
-            // ── Nombre ──
+            // ── Imagen ──
             Expanded(
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(8)),
+                    child: Container(
+                      width: double.infinity,
+                      color: AppColors.surfaceContainerLow,
+                      child: _ProductImage(imageUrl: product.imageUrl),
+                    ),
+                  ),
+                  if (inCart)
+                    Positioned(
+                      top: 6,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'En carrito',
+                          style: TextStyle(
+                            color: AppColors.onSecondary,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // ── Nombre ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
               child: Text(
                 product.name,
-                style: TextStyle(
-                  color: inCart ? AppColors.cartAmber : Colors.white,
-                  fontSize: 14,
-                  fontWeight: inCart ? FontWeight.w600 : FontWeight.normal,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.onSurface,
+                  height: 1.3,
                 ),
               ),
             ),
-            // ── Badge cantidad ──
-            if (inCart)
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.cartAmber,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text('x$qty',
-                    style: const TextStyle(
-                        color: AppColors.navyBg,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
-              ),
-            // ── Precio ──
-            Text(
-              '\$${product.price.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: inCart ? AppColors.cartAmber : AppColors.textSec,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+            // ── Precio + botón ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}',
+                    style: GoogleFonts.montserrat(
+                      color: AppColors.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _handleTap(context, cart, inCart),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: inCart
+                            ? AppColors.surfaceContainer
+                            : AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        inCart ? Icons.edit_outlined : Icons.add,
+                        color: inCart ? AppColors.primary : Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -257,22 +441,21 @@ class _ProductRow extends StatelessWidget {
     );
   }
 
-  void _handleTap(BuildContext ctx, CartProvider cart, bool inCart) {
+  void _handleTap(BuildContext context, CartProvider cart, bool inCart) {
     if (!inCart) {
       cart.add(product);
-      ScaffoldMessenger.of(ctx).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${product.name} agregado al carrito'),
           duration: const Duration(seconds: 1),
         ),
       );
     } else {
-      // Si ya está en carrito, mostrar opciones
       showModalBottomSheet(
-        context: ctx,
-        backgroundColor: AppColors.navyCard,
+        context: context,
+        backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         builder: (_) => _CartQuickSheet(product: product),
       );
@@ -280,55 +463,29 @@ class _ProductRow extends StatelessWidget {
   }
 }
 
-// ── Miniatura de producto ─────────────────────────────────────────────────────
-
-class _ProductThumb extends StatelessWidget {
+class _ProductImage extends StatelessWidget {
   final String imageUrl;
-  final bool inCart;
-  final bool hasImage;
-  const _ProductThumb(
-      {required this.imageUrl, required this.inCart, required this.hasImage});
+  const _ProductImage({required this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
-    if (!hasImage) {
-      // Bullet de texto cuando no hay imagen
-      return SizedBox(
-        width: 36,
-        child: Text(
-          'o',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: inCart ? AppColors.cartAmber : AppColors.textSec,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+    final url = ApiConfig.productImage(imageUrl);
+    if (url.isEmpty) {
+      return const Center(
+        child: Icon(Icons.inventory_2_outlined,
+            color: AppColors.onSurfaceVariant, size: 40),
       );
     }
-
-    final url = ApiConfig.productImage(imageUrl);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: 36,
-        height: 36,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => Container(
-          width: 36,
-          height: 36,
-          color: AppColors.navyLight,
-          child: const Icon(Icons.image_outlined,
-              size: 18, color: AppColors.textSec),
-        ),
-        errorWidget: (_, __, ___) => Container(
-          width: 36,
-          height: 36,
-          color: AppColors.navyLight,
-          child: const Icon(Icons.broken_image_outlined,
-              size: 18, color: AppColors.textSec),
-        ),
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.contain,
+      placeholder: (_, __) => const Center(
+        child: CircularProgressIndicator(
+            strokeWidth: 2, color: AppColors.primary),
+      ),
+      errorWidget: (_, __, ___) => const Center(
+        child: Icon(Icons.inventory_2_outlined,
+            color: AppColors.onSurfaceVariant, size: 40),
       ),
     );
   }
@@ -352,19 +509,28 @@ class _CartQuickSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: AppColors.outline,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 16),
-          Text(product.name,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(
+            product.name,
+            style: GoogleFonts.montserrat(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('\$${product.price.toStringAsFixed(2)}',
-              style: const TextStyle(color: AppColors.catHeader)),
+          Text(
+            '\$${product.price.toStringAsFixed(2)}',
+            style: const TextStyle(
+                color: AppColors.primary, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -374,17 +540,24 @@ class _CartQuickSheet extends StatelessWidget {
                 if (qty - 1 <= 0) Navigator.pop(context);
               }),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text('$qty',
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Text(
+                  '$qty',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
               ),
               _iconBtn(Icons.add, () {
-                if (qty < product.stock) cart.updateQuantity(product.id, qty + 1);
+                if (qty < product.stock) {
+                  cart.updateQuantity(product.id, qty + 1);
+                }
               }),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -393,11 +566,14 @@ class _CartQuickSheet extends StatelessWidget {
                     cart.remove(product.id);
                     Navigator.pop(context);
                   },
-                  icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                  label: const Text('Quitar', style: TextStyle(color: AppColors.danger)),
+                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                  label:
+                      const Text('Quitar', style: TextStyle(color: AppColors.error)),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.danger),
+                    side: const BorderSide(color: AppColors.error),
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24)),
                   ),
                 ),
               ),
@@ -419,171 +595,16 @@ class _CartQuickSheet extends StatelessWidget {
   Widget _iconBtn(IconData icon, VoidCallback onTap) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 38, height: 38,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.navyLight, width: 2),
+            color: AppColors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.outline),
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: AppColors.onSurface, size: 20),
         ),
       );
-}
-
-// ── FAB del carrito ───────────────────────────────────────────────────────────
-
-class _CartFab extends StatelessWidget {
-  final int count;
-  final VoidCallback onTap;
-  const _CartFab({required this.count, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.navyCard,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.navyLight, width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 12, offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.shopping_cart_outlined,
-                color: Colors.white, size: 26),
-          ),
-          if (count > 0)
-            Positioned(
-              right: -4, top: -4,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: AppColors.cartAmber,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                child: Text(
-                  count > 99 ? '99+' : '$count',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.navyBg,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Drawer de navegación ─────────────────────────────────────────────────────
-
-class _AppDrawer extends StatelessWidget {
-  final VoidCallback onReload;
-  const _AppDrawer({required this.onReload});
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppColors.navyCard,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Header ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              decoration: const BoxDecoration(
-                color: AppColors.navyBg,
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.storefront, color: AppColors.catHeader, size: 36),
-                  SizedBox(height: 10),
-                  Text('Tienda',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                  Text('Menú de productos',
-                      style: TextStyle(color: AppColors.textSec, fontSize: 12)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // ── Chatbot ──
-            _drawerItem(
-              context,
-              icon: Icons.smart_toy_outlined,
-              label: 'Asistente IA',
-              subtitle: 'Recomendaciones de productos',
-              color: AppColors.catHeader,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const ChatbotScreen()));
-              },
-            ),
-
-            const Divider(color: AppColors.divider, height: 1),
-
-            // ── Configuración ──
-            _drawerItem(
-              context,
-              icon: Icons.settings_outlined,
-              label: 'Configuración',
-              subtitle: 'Dirección del servidor',
-              color: AppColors.textSec,
-              onTap: () async {
-                Navigator.pop(context);
-                await Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                onReload();
-              },
-            ),
-
-            const Spacer(),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Sales AI Store v1.0',
-                  style: TextStyle(color: AppColors.divider, fontSize: 11)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _drawerItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color, size: 24),
-      title: Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(color: AppColors.textSec, fontSize: 11)),
-      onTap: onTap,
-      horizontalTitleGap: 12,
-    );
-  }
 }
 
 // ── Vista de error ────────────────────────────────────────────────────────────
@@ -601,17 +622,24 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off, size: 60, color: AppColors.textSec),
+            const Icon(Icons.wifi_off,
+                size: 60, color: AppColors.onSurfaceVariant),
             const SizedBox(height: 16),
-            const Text('Sin conexión al servidor',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              'Sin conexión al servidor',
+              style: GoogleFonts.montserrat(
+                color: AppColors.onSurface,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(message,
-                style: const TextStyle(color: AppColors.textSec, fontSize: 12),
-                textAlign: TextAlign.center),
+            Text(
+              message,
+              style: const TextStyle(
+                  color: AppColors.onSurfaceVariant, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: onRetry,
