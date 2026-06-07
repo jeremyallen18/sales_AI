@@ -16,10 +16,11 @@ def new_sale():
         return jsonify({"error": "Cuerpo JSON inválido o Content-Type incorrecto"}), 400
     try:
         client_name = (data.get("client_name") or "").strip()
+        payment_method = (data.get("payment_method") or "efectivo").strip().lower()
         items = data.get("items")
         if not items:
             return jsonify({"error": "Se requiere al menos un ítem"}), 400
-        sale = register_sale(items, client_name=client_name)
+        sale = register_sale(items, client_name=client_name, payment_method=payment_method)
         return jsonify(sale.to_dict()), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

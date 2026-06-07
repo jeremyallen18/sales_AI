@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════════════════
+   cliente.css — Estilos personalizados tienda cliente
+═══════════════════════════════════════════════ */
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #dcd9d9; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #c6c6c7; }
+
+/* Ocultar scrollbar en listas horizontales */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Imagen de producto con zoom en hover */
+.product-img { transition: transform 0.3s ease; }
+.product-card:hover .product-img { transform: scale(1.08); }
+
+/* Badge de carrito con escala suave */
+.cart-badge { transition: transform 0.15s ease; }
+
+/* Animación shimmer para el botón de checkout */
+@keyframes shimmer { to { transform: translateX(200%); } }
+
+/* Transición suave para toasts */
+.toast { transition: opacity 0.35s ease; }
+
+/* Tap highlight desactivado en mobile */
+* { -webkit-tap-highlight-color: transparent; }

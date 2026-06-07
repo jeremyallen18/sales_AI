@@ -25,14 +25,19 @@ class ApiService {
   static Future<Map<String, dynamic>> createSale({
     required List<Map<String, dynamic>> items,
     required String clientName,
+    String paymentMethod = 'efectivo',
   }) async {
     final response = await http
         .post(
           Uri.parse(ApiConfig.sales),
           headers: {'Content-Type': 'application/json'},
-          body: json.encode({'items': items, 'client_name': clientName}),
+          body: json.encode({
+            'items': items,
+            'client_name': clientName,
+            'payment_method': paymentMethod,
+          }),
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 20));
 
     if (response.statusCode == 201) {
       return json.decode(response.body) as Map<String, dynamic>;

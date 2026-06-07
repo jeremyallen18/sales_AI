@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+limiter = Limiter(key_func=get_remote_address, default_limits=[], storage_uri="memory://")
 
 
 def _migrate_columns(app):
@@ -29,6 +29,8 @@ def _migrate_columns(app):
     migrations = [
         ("products", "image_url", "TEXT DEFAULT ''"),
         ("sales", "client_name", "TEXT DEFAULT ''"),
+        ("sales", "payment_method", "TEXT DEFAULT 'efectivo'"),
+        ("sales", "payment_status", "TEXT DEFAULT 'aprobado'"),
     ]
     for table, column, col_type in migrations:
         cursor.execute(f"PRAGMA table_info({table})")

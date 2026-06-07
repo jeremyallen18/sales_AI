@@ -13,21 +13,23 @@ let pendingImageFile = null;  // Archivo de imagen pendiente para subir
 const PRODUCT_PLACEHOLDER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>';
 
 // ─── Navegacion de paneles ───
-function showPanel(name) {
+function showPanel(name, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
 
-  const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach(ni => {
-    if (ni.textContent.trim().toLowerCase().includes(name.split('-')[0].toLowerCase())) ni.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(n => {
+    n.classList.remove('nav-item-active');
   });
+  if (btn) {
+    btn.classList.add('nav-item-active');
+  }
 
   const titles = {
     dashboard: 'Dashboard', ventas: 'Punto de Venta',
     historial: 'Historial de Ventas', inventario: 'Inventario', chatbot: 'Asistente IA'
   };
-  document.getElementById('pageTitle').textContent = titles[name] || name;
+  const titleEl = document.getElementById('pageTitle');
+  if (titleEl) titleEl.textContent = titles[name] || name;
 
   if (name === 'dashboard') loadDashboard();
   if (name === 'ventas') loadPosProducts();
@@ -92,20 +94,20 @@ function renderLineChart(data) {
       labels: data.map(d => d.day),
       datasets: [{
         data: data.map(d => d.total),
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99,102,241,.08)',
+        borderColor: '#b5000b',
+        backgroundColor: 'rgba(181,0,11,0.07)',
         fill: true,
         tension: 0.4,
         pointRadius: 3,
-        pointBackgroundColor: '#6366f1'
+        pointBackgroundColor: '#b5000b'
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#5d5f6b', font: { size: 10 } }, grid: { color: '#2a2c34' } },
-        y: { ticks: { color: '#5d5f6b', font: { size: 10 }, callback: v => '$' + v }, grid: { color: '#2a2c34' } }
+        x: { ticks: { color: '#5e3f3b', font: { size: 10 } }, grid: { color: '#f0eded' } },
+        y: { ticks: { color: '#5e3f3b', font: { size: 10 }, callback: v => '$' + v }, grid: { color: '#f0eded' } }
       }
     }
   });
@@ -121,7 +123,7 @@ function renderBarChart(data) {
       datasets: [{
         label: 'Unidades vendidas',
         data: data.map(d => d.total_qty),
-        backgroundColor: ['#6366f1', '#818cf8', '#34d399', '#fbbf24', '#f87171'],
+        backgroundColor: ['#b5000b', '#e30613', '#fed400', '#705d00', '#ffb4aa'],
         borderRadius: 6
       }]
     },
@@ -129,8 +131,8 @@ function renderBarChart(data) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#5d5f6b', font: { size: 10 } }, grid: { display: false } },
-        y: { ticks: { color: '#5d5f6b', font: { size: 10 } }, grid: { color: '#2a2c34' } }
+        x: { ticks: { color: '#5e3f3b', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#5e3f3b', font: { size: 10 } }, grid: { color: '#f0eded' } }
       }
     }
   });
@@ -426,6 +428,13 @@ async function sendChat() {
       body: JSON.stringify({ message: msg })
     });
 
+    if (!res.ok) {
+      removeTypingIndicator(typingId);
+      addMessage('Error al conectar con el asistente. Verifica que OPENROUTER_API_KEY esté configurada.', 'ai');
+      document.getElementById('btnSend').disabled = false;
+      return;
+    }
+
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let aiMsgId = null;
@@ -444,9 +453,17 @@ async function sendChat() {
         if (data === '[DONE]') break;
         try {
           const parsed = JSON.parse(data);
-          fullText += parsed.token;
-          if (!aiMsgId) aiMsgId = addMessage('', 'ai');
-          updateMessage(aiMsgId, fullText);
+          if (parsed.error) {
+            removeTypingIndicator(typingId);
+            if (!aiMsgId) aiMsgId = addMessage(parsed.error, 'ai');
+            else updateMessage(aiMsgId, parsed.error);
+            break;
+          }
+          if (parsed.token) {
+            fullText += parsed.token;
+            if (!aiMsgId) aiMsgId = addMessage('', 'ai');
+            updateMessage(aiMsgId, fullText);
+          }
         } catch (e) { }
       }
     }
@@ -462,7 +479,11 @@ function addMessage(text, role) {
   const div = document.createElement('div');
   div.className = `msg msg-${role}`;
   div.id = id;
-  div.textContent = text;
+  if (role === 'ai') {
+    div.innerHTML = marked.parse(text || '');
+  } else {
+    div.textContent = text;
+  }
   document.getElementById('chatMessages').appendChild(div);
   div.scrollIntoView({ behavior: 'smooth' });
   return id;
@@ -470,7 +491,13 @@ function addMessage(text, role) {
 
 function updateMessage(id, text) {
   const el = document.getElementById(id);
-  if (el) { el.textContent = text; el.scrollIntoView({ behavior: 'smooth' }); }
+  if (!el) return;
+  if (el.classList.contains('msg-ai')) {
+    el.innerHTML = marked.parse(text || '');
+  } else {
+    el.textContent = text;
+  }
+  el.scrollIntoView({ behavior: 'smooth' });
 }
 
 function addTypingIndicator(id) {
