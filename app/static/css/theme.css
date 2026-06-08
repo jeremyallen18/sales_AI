@@ -1,0 +1,167 @@
+/* ═══════════════════════════════════════════════════════════
+   theme.css — Dark mode para VentaIA
+   Cargar DESPUÉS de Tailwind CDN para que los overrides ganen
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── A. CSS Custom Properties ─── */
+:root {
+  --color-background:                #fbf9f8;
+  --color-surface:                   #fbf9f8;
+  --color-surface-container-lowest:  #ffffff;
+  --color-surface-container-low:     #f6f3f2;
+  --color-surface-container:         #f0eded;
+  --color-surface-container-high:    #eae8e7;
+  --color-surface-container-highest: #e4e2e1;
+  --color-surface-variant:           #e4e2e1;
+  --color-on-surface:                #1b1c1c;
+  --color-on-surface-variant:        #5e3f3b;
+  --color-outline:                   #936e69;
+  --color-outline-variant:           #e9bcb6;
+  --color-primary:                   #b5000b;
+  --color-on-primary:                #ffffff;
+  --color-primary-container:         #e30613;
+  --color-on-primary-container:      #fff5f3;
+  --color-secondary-container:       #fed400;
+  --color-on-secondary-container:    #6f5c00;
+  --color-secondary-fixed-dim:       #eac300;
+  --color-error:                     #ba1a1a;
+  --color-error-container:           #ffdad6;
+  --color-on-error-container:        #93000a;
+  --color-inverse-surface:           #303030;
+  --color-inverse-on-surface:        #f3f0f0;
+  /* UI semánticos */
+  --color-scrollbar-thumb:           #e4e2e1;
+  --color-scrollbar-thumb-hover:     #c6c6c7;
+  --color-modal-overlay:             rgba(0, 0, 0, 0.5);
+  --color-toast-success-bg:          #E8F5E9;
+  --color-toast-success-text:        #2E7D32;
+  --color-toast-success-border:      #A5D6A7;
+  --color-upload-hover-bg:           #fff5f3;
+}
+
+.dark {
+  --color-background:                #131210;
+  --color-surface:                   #131210;
+  --color-surface-container-lowest:  #0f0d0d;
+  --color-surface-container-low:     #1c1917;
+  --color-surface-container:         #201d1b;
+  --color-surface-container-high:    #2a2623;
+  --color-surface-container-highest: #342f2c;
+  --color-surface-variant:           #4e3735;
+  --color-on-surface:                #e5e1df;
+  --color-on-surface-variant:        #d8bfbb;
+  --color-outline:                   #a28883;
+  --color-outline-variant:           #4e3735;
+  --color-primary:                   #b5000b;
+  --color-on-primary:                #ffffff;
+  --color-primary-container:         #93000a;
+  --color-on-primary-container:      #ffdad6;
+  --color-secondary-container:       #564400;
+  --color-on-secondary-container:    #ffe174;
+  --color-secondary-fixed-dim:       #d4af00;
+  --color-error:                     #ffb4ab;
+  --color-error-container:           #93000a;
+  --color-on-error-container:        #ffdad6;
+  --color-inverse-surface:           #e5e1df;
+  --color-inverse-on-surface:        #323030;
+  /* UI semánticos */
+  --color-scrollbar-thumb:           #342f2c;
+  --color-scrollbar-thumb-hover:     #4e3735;
+  --color-modal-overlay:             rgba(0, 0, 0, 0.75);
+  --color-toast-success-bg:          #1b2e1c;
+  --color-toast-success-text:        #86efac;
+  --color-toast-success-border:      #166534;
+  --color-upload-hover-bg:           #2a1515;
+}
+
+/* ─── B. Overrides de clases Tailwind bajo .dark ─── */
+/* Tailwind CDN genera los colores como hex estáticos.
+   Estos selectores ganan por especificidad cuando <html class="dark"> */
+
+/* Backgrounds */
+.dark .bg-background                { background-color: #131210; }
+.dark .bg-surface                   { background-color: #131210; }
+.dark .bg-surface-container-lowest  { background-color: #0f0d0d; }
+.dark .bg-surface-container-low     { background-color: #1c1917; }
+.dark .bg-surface-container         { background-color: #201d1b; }
+.dark .bg-surface-container-high    { background-color: #2a2623; }
+.dark .bg-surface-container-highest { background-color: #342f2c; }
+.dark .bg-surface-variant           { background-color: #4e3735; }
+.dark .bg-primary                   { background-color: #b5000b; }
+.dark .bg-primary-container         { background-color: #93000a; }
+.dark .bg-error-container           { background-color: #93000a; }
+.dark .bg-secondary-container       { background-color: #564400; }
+
+/* Text */
+.dark .text-on-surface              { color: #e5e1df; }
+.dark .text-on-surface-variant      { color: #d8bfbb; }
+.dark .text-on-background           { color: #e5e1df; }
+.dark .text-primary                 { color: #b5000b; }
+.dark .text-on-primary              { color: #ffffff; }
+.dark .text-on-primary-container    { color: #ffdad6; }
+.dark .text-on-secondary-container  { color: #ffe174; }
+.dark .text-on-secondary            { color: #ffffff; }
+.dark .text-error                   { color: #ffb4ab; }
+.dark .text-on-error-container      { color: #ffdad6; }
+.dark .text-secondary               { color: #d4af00; }
+.dark .text-outline                 { color: #a28883; }
+.dark .text-inverse-on-surface      { color: #323030; }
+
+/* Borders */
+.dark .border-surface-variant           { border-color: #4e3735; }
+.dark .border-outline-variant           { border-color: #4e3735; }
+.dark .border-surface-container-highest { border-color: #342f2c; }
+.dark .border-surface-container-high    { border-color: #2a2623; }
+.dark .border-surface-container-low     { border-color: #1c1917; }
+/* Valores arbitrarios usados en stat cards */
+.dark .border-\[\#EEEEEE\]              { border-color: #342f2c; }
+
+/* Divide (tablas) */
+.dark .divide-surface-container-highest > * + * { border-color: #342f2c; }
+
+/* Hover backgrounds */
+.dark .hover\:bg-surface-container-low:hover     { background-color: #1c1917; }
+.dark .hover\:bg-surface-container:hover         { background-color: #201d1b; }
+.dark .hover\:bg-surface-container-high:hover    { background-color: #2a2623; }
+.dark .hover\:bg-primary-container:hover         { background-color: #7a0007; }
+.dark .hover\:bg-error-container:hover           { background-color: #7a0008; }
+
+/* Hover text */
+.dark .hover\:text-error:hover                   { color: #ffb4ab; }
+.dark .hover\:text-primary:hover                 { color: #b5000b; }
+
+/* Focus ring */
+.dark .focus\:ring-primary:focus        { --tw-ring-color: rgba(181, 0, 11, 0.4); }
+.dark .focus\:border-primary:focus      { border-color: #b5000b; }
+
+/* Sombras — más visibles en fondos oscuros */
+.dark .shadow-\[0px_4px_12px_rgba\(0\2c 0\2c 0\2c 0\.05\)\] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.dark .shadow-\[0px_8px_24px_rgba\(0\2c 0\2c 0\2c 0\.1\)\] {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.dark .shadow-\[0_4px_12px_rgba\(0\2c 0\2c 0\2c 0\.05\)\] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.dark .shadow-\[0_8px_24px_rgba\(0\2c 0\2c 0\2c 0\.1\)\] {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* Selection */
+.dark ::selection {
+  background-color: #b5000b;
+  color: #ffffff;
+}
+
+/* ─── C. Transición suave al hacer toggle ─── */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 0.2s ease,
+    color 0.15s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease !important;
+}

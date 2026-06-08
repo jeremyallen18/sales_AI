@@ -5,8 +5,8 @@
 /* Scrollbar personalizado */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #dcd9d9; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #c6c6c7; }
+::-webkit-scrollbar-thumb { background: var(--color-scrollbar-thumb); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-scrollbar-thumb-hover); }
 
 /* Ocultar scrollbar en listas horizontales */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
