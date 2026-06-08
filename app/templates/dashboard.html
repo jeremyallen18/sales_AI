@@ -4,9 +4,11 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>VentaIA — Panel de Administración</title>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"/>
   <script>
     tailwind.config = {
@@ -127,6 +129,11 @@
     </span>
     <button class="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors">
       <span class="material-symbols-outlined text-xl">notifications</span>
+    </button>
+    <button onclick="toggleTheme()"
+      class="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
+      aria-label="Cambiar tema">
+      <span class="material-symbols-outlined text-xl" data-theme-icon="">dark_mode</span>
     </button>
     <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
       <span class="material-symbols-outlined text-white text-base" style="font-variation-settings:'FILL' 1;">person</span>

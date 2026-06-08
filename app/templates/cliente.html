@@ -4,10 +4,12 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tienda</title>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700;800&display=swap" rel="stylesheet"/>
   <link href="{{ url_for('static', filename='css/cliente.css') }}" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}"/>
 
   <script id="tw-config">
     tailwind.config = {
@@ -117,6 +119,13 @@
       <input id="search-input" type="text" placeholder="Buscar productos..."
         class="w-full h-12 bg-surface-container rounded-lg pl-12 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary focus:bg-surface transition-all font-body-md text-body-md"/>
     </div>
+
+    <!-- Dark mode toggle -->
+    <button onclick="toggleTheme()"
+      class="text-on-surface-variant hover:text-primary transition-colors active:scale-95 ml-2"
+      aria-label="Cambiar tema">
+      <span class="material-symbols-outlined text-[24px]" data-theme-icon="">dark_mode</span>
+    </button>
 
     <!-- Ícono carrito -->
     <button onclick="showCart()" class="relative text-primary hover:text-primary-container transition-colors active:scale-95">
