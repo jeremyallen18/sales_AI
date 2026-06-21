@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Recibo #{{ "%04d"|format(sale.id) }}</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .receipt-jagged-edge {
+        position: relative;
+        background: white;
+    }
+    .receipt-jagged-edge::after {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        height: 10px;
+        background: linear-gradient(-45deg, transparent 5px, white 5px),
+                    linear-gradient(45deg, transparent 5px, white 5px);
+        background-size: 10px 10px;
+    }
+    .paper-texture {
+        background-color: #fbf9f8;
+        background-image: radial-gradient(#e4e2e1 0.5px, transparent 0.5px);
+        background-size: 16px 16px;
+    }
+    #thermal-print { display: none !important; }
+
+    @page {
+        size: 58mm auto;
+        margin: 0;
+    }
+    @media print {
+        /* ── Calidad nativa: SIN zoom ni scale ─────────────────────
+           El browser renderiza a 58mm de ancho directo → sin pérdida
+           de nitidez. Los paddings/fuentes se ajustan manualmente.  */
+        html {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .no-print      { display: none !important; }
+        #thermal-print { display: none !important; }
+
+        /* Quitar flex-centering del body */
+        body {
+            display: block !important;
+            min-height: 0 !important;
+            width: 58mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+        }
+
+        /* El receipt ocupa el ancho completo del papel */
+        main {
+            width: 58mm !important;
+            max-width: 58mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* ── Ajustar paddings grandes a escala 58mm ── */
+        .px-8  { padding-left: 3mm !important; padding-right: 3mm !important; }
+        .pt-10 { padding-top: 3mm !important; }
+        .pb-6  { padding-bottom: 2mm !important; }
+        .pb-8  { padding-bottom: 2mm !important; }
+        .pb-12 { padding-bottom: 3mm !important; }
+        .py-6  { padding-top: 2mm !important; padding-bottom: 2mm !important; }
+        .p-6   { padding: 2mm !important; }
+        .p-3   { padding: 1.5mm !important; }
+        .mb-4  { margin-bottom: 1.5mm !important; }
+        .mb-6  { margin-bottom: 2mm !important; }
+        .mt-8  { margin-top: 2mm !important; }
+        .mx-4  { margin-left: 0 !important; margin-right: 0 !important; }
+        .gap-3 { gap: 1.5mm !important; }
+        .px-4  { padding-left: 2mm !important; padding-right: 2mm !important; }
+        .pr-4  { padding-right: 2mm !important; }
+
+        /* ── Tamaños de iconos y QR ── */
+        .w-10, .h-10 { width: 7mm !important; height: 7mm !important; }
+        .w-32, .h-32 { width: 18mm !important; height: 18mm !important; }
+        .text-3xl    { font-size: 9pt !important; }
+        .text-\[18px\] { font-size: 7pt !important; }
+
+        /* ── Fuentes proporcionales a 58mm ── */
+        .text-2xl { font-size: 10pt !important; }
+        .text-lg  { font-size:  8.5pt !important; }
+        .text-sm  { font-size:  7pt !important; }
+        .text-xs  { font-size:  6pt !important; }
+        .text-\[10px\] { font-size: 5.5pt !important; }
+
+        /* ── Quitar efectos decorativos de pantalla ── */
+        .paper-texture {
+            background-image: none !important;
+            background-color: white !important;
+        }
+        .receipt-jagged-edge {
+            box-shadow: none !important;
+            border-radius: 4px 4px 0 0 !important;
+            overflow: visible !important;
+        }
+        .receipt-jagged-edge::after { display: none !important; }
+        /* Solo ocultar los círculos decorativos del borde */
+        .bg-background.rounded-full { display: none !important; }
+    }
+</style>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "surface-bright": "#fbf9f8",
+                    "primary-container": "#e30613",
+                    "on-primary-fixed-variant": "#930007",
+                    "on-background": "#1b1c1c",
+                    "surface-dim": "#dcd9d9",
+                    "tertiary": "#575959",
+                    "outline": "#936e69",
+                    "tertiary-fixed-dim": "#c6c6c7",
+                    "background": "#fbf9f8",
+                    "secondary-container": "#fed400",
+                    "inverse-on-surface": "#f3f0f0",
+                    "surface-container-high": "#eae8e7",
+                    "on-secondary-fixed-variant": "#554500",
+                    "on-primary-fixed": "#410001",
+                    "inverse-surface": "#303030",
+                    "primary-fixed-dim": "#ffb4aa",
+                    "primary-fixed": "#ffdad5",
+                    "surface": "#fbf9f8",
+                    "surface-variant": "#e4e2e1",
+                    "on-secondary-container": "#6f5c00",
+                    "on-surface-variant": "#5e3f3b",
+                    "on-tertiary-container": "#f6f7f7",
+                    "surface-container-lowest": "#ffffff",
+                    "outline-variant": "#e9bcb6",
+                    "surface-container-low": "#f6f3f2",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-tertiary": "#ffffff",
+                    "surface-container": "#f0eded",
+                    "primary": "#b5000b",
+                    "surface-container-highest": "#e4e2e1",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "secondary": "#705d00",
+                    "surface-tint": "#c0000c",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#e2e2e2",
+                    "tertiary-container": "#707171",
+                    "on-surface": "#1b1c1c",
+                    "on-primary-container": "#fff5f3"
+                },
+                fontFamily: {
+                    "display": ["Montserrat"],
+                    "body": ["Inter"]
+                }
+            }
+        }
+    }
+</script>
+</head>
+<body class="paper-texture min-h-screen flex items-center justify-center p-4 md:p-8 font-body text-on-surface">
+
+<main class="w-full max-w-md">
+
+    <!-- Acción: Imprimir -->
+    <div class="flex justify-between items-center mb-6 px-2 no-print">
+        <p class="font-display font-semibold text-primary">Recibo de Venta</p>
+        <button onclick="printReceipt()"
+                class="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity">
+            <span class="material-symbols-outlined text-[18px]">print</span>
+            Imprimir
+        </button>
+    </div>
+
+    <!-- Recibo físico -->
+    <div class="receipt-jagged-edge shadow-[0px_8px_24px_rgba(0,0,0,0.08)] overflow-hidden rounded-t-xl">
+
+        <!-- Encabezado con branding -->
+        <div class="pt-10 pb-6 px-8 text-center border-b border-dashed border-outline-variant">
+            <div class="inline-flex items-center justify-center bg-primary-container text-on-primary rounded-lg px-4 py-2 mb-4">
+                <span class="font-display font-extrabold text-2xl tracking-tighter text-white">
+                    TiendIA
+                </span>
+            </div>
+            <h1 class="font-display font-bold text-lg text-on-surface">Mi Tienda</h1>
+            <p class="text-on-surface-variant text-sm mt-1">Comprobante digital de venta</p>
+        </div>
+
+        <!-- Metadata de la transacción -->
+        <div class="py-6 px-8 grid grid-cols-2 gap-y-3 border-b border-dashed border-outline-variant">
+            <div>
+                <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-bold">Fecha</p>
+                <p class="font-display font-semibold text-sm">{{ date }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-bold">Hora</p>
+                <p class="font-display font-semibold text-sm">{{ time }}</p>
+            </div>
+            <div>
+                <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-bold">Folio</p>
+                <p class="font-display font-semibold text-sm">#VENTA-{{ "%04d"|format(sale.id) }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-bold">
+                    {% if sale.client_name %}Cliente{% else %}Terminal{% endif %}
+                </p>
+                <p class="font-display font-semibold text-sm">
+                    {{ sale.client_name if sale.client_name else "POS-01" }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Lista de ítems -->
+        <div class="py-6 px-8 space-y-4 border-b border-dashed border-outline-variant">
+            {% for item in sale.items %}
+            <div class="flex justify-between items-start">
+                <div class="flex-1 pr-4">
+                    <p class="font-display font-bold text-sm text-on-surface">
+                        {{ item.product.name if item.product else "Producto" }}
+                    </p>
+                    <p class="text-on-surface-variant text-xs font-medium">
+                        Cantidad: {{ item.quantity }} x ${{ "%.2f"|format(item.price) }}
+                    </p>
+                </div>
+                <p class="font-display font-bold text-sm text-on-surface whitespace-nowrap">
+                    ${{ "%.2f"|format(item.quantity * item.price) }}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Totales -->
+        <div class="bg-surface-container-low mx-4 rounded-xl p-6 mb-6 mt-6">
+            <div class="space-y-2 border-b border-outline-variant pb-4 mb-4">
+                <div class="flex justify-between text-sm text-on-surface-variant">
+                    <span>Subtotal</span>
+                    <span class="font-medium">${{ "%.2f"|format(sale.subtotal_amount) }}</span>
+                </div>
+                {% if sale.discount_amount and sale.discount_amount > 0 %}
+                <div class="flex justify-between text-sm text-on-surface-variant">
+                    <span>Descuento</span>
+                    <span class="font-medium text-green-600">-${{ "%.2f"|format(sale.discount_amount) }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between text-sm text-on-surface-variant">
+                    <span>IVA (16%)</span>
+                    <span class="font-medium">${{ "%.2f"|format(sale.tax_amount) }}</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="font-display font-extrabold text-lg text-primary uppercase tracking-tight">Total</span>
+                <span class="font-display font-extrabold text-2xl text-on-surface">
+                    ${{ "%.2f"|format(sale.total_amount) }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Método de pago -->
+        <div class="px-8 pb-8 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-surface-container rounded-full flex items-center justify-center">
+                    {% if sale.payment_method == "tarjeta" %}
+                    <span class="material-symbols-outlined text-primary text-[20px]">credit_card</span>
+                    {% elif sale.payment_method == "transferencia" %}
+                    <span class="material-symbols-outlined text-primary text-[20px]">swap_horiz</span>
+                    {% else %}
+                    <span class="material-symbols-outlined text-primary text-[20px]">payments</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest leading-none">
+                        Método de Pago
+                    </p>
+                    <p class="font-display font-bold text-xs mt-0.5">
+                        {% if sale.payment_method == "tarjeta" %}Tarjeta
+                        {% elif sale.payment_method == "transferencia" %}Transferencia
+                        {% else %}Efectivo{% endif %}
+                    </p>
+                </div>
+            </div>
+            <span class="material-symbols-outlined text-green-600 text-3xl"
+                  style="font-variation-settings: 'FILL' 1;">check_circle</span>
+        </div>
+
+        <!-- QR y pie de recibo -->
+        <div class="bg-surface-container-highest px-8 pt-10 pb-12 text-center relative">
+            <!-- Recortes circulares decorativos -->
+            <div class="absolute -top-3 -left-3 w-6 h-6 bg-background rounded-full"></div>
+            <div class="absolute -top-3 -right-3 w-6 h-6 bg-background rounded-full"></div>
+
+            <div class="bg-white p-3 inline-block rounded-xl shadow-sm mb-6 border border-outline-variant">
+                <img alt="QR Folio {{ "%04d"|format(sale.id) }}"
+                     class="w-32 h-32"
+                     src="data:image/png;base64,{{ qr_b64 }}"/>
+            </div>
+
+            <p class="font-display font-bold text-sm text-on-surface mb-1">Escanea para Facturar</p>
+            <p class="text-on-surface-variant text-xs leading-relaxed px-4">
+                Comprobante digital de venta &bull; Folio #VENTA-{{ "%04d"|format(sale.id) }}
+            </p>
+
+            <div class="mt-8 flex justify-center gap-1 opacity-20">
+                <div class="w-1 h-1 bg-on-surface rounded-full"></div>
+                <div class="w-1 h-1 bg-on-surface rounded-full"></div>
+                <div class="w-1 h-1 bg-on-surface rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pie de página -->
+    <p class="text-center text-on-surface-variant text-xs mt-8 pb-4">
+        Gracias por su compra &mdash; TiendIA
+    </p>
+
+</main>
+
+<!-- ════════════════════════════════════════════════
+     LAYOUT TÉRMICO — solo visible al imprimir
+     Sin Tailwind. CSS inline. Ancho nativo 54mm.
+     ════════════════════════════════════════════════ -->
+<div id="thermal-print">
+  <style>
+    #thermal-print { line-height: 1.35; }
+    #thermal-print .th-center  { text-align: center; }
+    #thermal-print .th-right   { text-align: right; }
+    #thermal-print .th-bold    { font-weight: bold; }
+    #thermal-print .th-lg      { font-size: 10pt; }
+    #thermal-print .th-sm      { font-size: 7pt; }
+    #thermal-print .th-xs      { font-size: 6pt; color: #555; }
+    #thermal-print .th-divider {
+      border: none;
+      border-top: 1px dashed #666;
+      margin: 2mm 0;
+    }
+    #thermal-print .th-divider-solid {
+      border: none;
+      border-top: 1px solid #000;
+      margin: 1.5mm 0;
+    }
+    #thermal-print .th-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    #thermal-print .th-row-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1mm;
+    }
+    #thermal-print .th-row-item .th-name {
+      flex: 1;
+      padding-right: 2mm;
+    }
+    #thermal-print .th-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 1.5mm;
+    }
+    #thermal-print .th-total-label { font-size: 10pt; font-weight: bold; }
+    #thermal-print .th-total-val   { font-size: 11pt; font-weight: bold; }
+    #thermal-print .th-qr img { width: 22mm; height: 22mm; }
+    #thermal-print .th-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5mm 0;
+      font-size: 7.5pt;
+    }
+    #thermal-print .th-meta-label { font-size: 5.5pt; text-transform: uppercase; color: #555; }
+    #thermal-print .th-meta-right { text-align: right; }
+  </style>
+
+  <!-- Encabezado -->
+  <div class="th-center" style="padding:2mm 0 1.5mm;">
+    <div class="th-bold th-lg">TiendIA</div>
+    <div class="th-xs">Comprobante digital de venta</div>
+  </div>
+
+  <hr class="th-divider">
+
+  <!-- Metadata -->
+  <div class="th-meta-grid" style="padding:0 0 1.5mm;">
+    <div>
+      <div class="th-meta-label">Fecha</div>
+      <div class="th-bold">{{ date }}</div>
+    </div>
+    <div class="th-meta-right">
+      <div class="th-meta-label">Hora</div>
+      <div class="th-bold">{{ time }}</div>
+    </div>
+    <div>
+      <div class="th-meta-label">Folio</div>
+      <div class="th-bold">#{{ "%04d"|format(sale.id) }}</div>
+    </div>
+    <div class="th-meta-right">
+      <div class="th-meta-label">{% if sale.client_name %}Cliente{% else %}Terminal{% endif %}</div>
+      <div class="th-bold">{{ sale.client_name if sale.client_name else "POS-01" }}</div>
+    </div>
+  </div>
+
+  <hr class="th-divider">
+
+  <!-- Artículos -->
+  <div style="padding:1mm 0;">
+    {% for item in sale.items %}
+    <div class="th-row-item">
+      <div class="th-name">
+        <div class="th-bold">{{ item.product.name if item.product else "Producto" }}</div>
+        <div class="th-xs">{{ item.quantity }} x ${{ "%.2f"|format(item.price) }}</div>
+      </div>
+      <div class="th-bold">${{ "%.2f"|format(item.quantity * item.price) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <hr class="th-divider-solid">
+
+  <!-- Subtotales -->
+  <div style="font-size:7.5pt; padding:1mm 0;">
+    <div class="th-row">
+      <span>Subtotal</span>
+      <span>${{ "%.2f"|format(sale.subtotal_amount) }}</span>
+    </div>
+    {% if sale.discount_amount and sale.discount_amount > 0 %}
+    <div class="th-row">
+      <span>Descuento</span>
+      <span>-${{ "%.2f"|format(sale.discount_amount) }}</span>
+    </div>
+    {% endif %}
+    <div class="th-row">
+      <span>IVA (16%)</span>
+      <span>${{ "%.2f"|format(sale.tax_amount) }}</span>
+    </div>
+  </div>
+
+  <hr class="th-divider-solid">
+
+  <!-- Total -->
+  <div class="th-total-row" style="padding:1mm 0 1.5mm;">
+    <span class="th-total-label">TOTAL</span>
+    <span class="th-total-val">${{ "%.2f"|format(sale.total_amount) }}</span>
+  </div>
+
+  <hr class="th-divider">
+
+  <!-- Método de pago -->
+  <div style="font-size:7.5pt; padding:1mm 0;">
+    <div class="th-row">
+      <span class="th-xs" style="text-transform:uppercase; letter-spacing:0.04em;">Método de pago</span>
+      <span class="th-bold">
+        {% if sale.payment_method == "tarjeta" %}Tarjeta
+        {% elif sale.payment_method == "transferencia" %}Transferencia
+        {% else %}Efectivo{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <hr class="th-divider">
+
+  <!-- QR -->
+  <div class="th-center th-qr" style="padding:1.5mm 0;">
+    <img alt="QR" src="data:image/png;base64,{{ qr_b64 }}">
+    <div class="th-xs" style="margin-top:1mm;">Escanea para facturar</div>
+    <div class="th-xs">Folio #VENTA-{{ "%04d"|format(sale.id) }}</div>
+  </div>
+
+  <hr class="th-divider">
+
+  <!-- Pie -->
+  <div class="th-center th-xs" style="padding:1mm 0 2mm;">
+    Gracias por su compra — TiendIA
+  </div>
+
+</div><!-- /#thermal-print -->
+
+<script>
+    // Animación de entrada del recibo web
+    document.addEventListener('DOMContentLoaded', () => {
+        const receipt = document.querySelector('.receipt-jagged-edge');
+        receipt.style.opacity = '0';
+        receipt.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            receipt.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+            receipt.style.opacity = '1';
+            receipt.style.transform = 'translateY(0)';
+        }, 100);
+    });
+
+    // Impresión nativa a 58mm — sin zoom, máxima nitidez
+    function printReceipt() {
+        const main    = document.querySelector('main');
+        const receipt = document.querySelector('.receipt-jagged-edge');
+
+        // Forzar temporalmente el ancho a 58mm (≈219px a 96dpi) para medir altura real
+        const prevStyle = main.style.cssText;
+        main.style.cssText = 'width:219px!important;max-width:219px!important;padding:0!important;margin:0!important;';
+        void main.offsetHeight; // forzar reflow
+
+        const heightPx = receipt.scrollHeight;
+        const heightMm = Math.ceil(heightPx / 3.7795) + 6; // +6mm buffer
+
+        main.style.cssText = prevStyle; // restaurar
+
+        // Inyectar @page con dimensiones exactas al contenido
+        let ps = document.getElementById('_pps');
+        if (!ps) {
+            ps = document.createElement('style');
+            ps.id = '_pps';
+            document.head.appendChild(ps);
+        }
+        ps.textContent = `@page { size: 58mm ${heightMm}mm; margin: 0; }`;
+
+        window.print();
+    }
+</script>
+</body>
+</html>

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
+import '../providers/branch_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/customer_auth_provider.dart';
+import '../screens/branch_picker_screen.dart';
 import '../screens/catalog_screen.dart';
+import '../screens/offers_screen.dart';
 import '../screens/cart_screen.dart';
 import '../screens/chatbot_screen.dart';
+import '../screens/profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -21,19 +26,73 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final cartCount = context.watch<CartProvider>().count;
+    final isLoggedIn = context.watch<CustomerAuthProvider>().isLoggedIn;
+    final branchProv = context.watch<BranchProvider>();
+
+    // Si no hay sucursal seleccionada, mostrar el selector primero
+    if (!branchProv.hasBranchSelected) {
+      return const BranchPickerScreen();
+    }
+
+    final selectedBranch = branchProv.selectedBranch!;
 
     final screens = [
       CatalogScreen(onGoToCart: () => _switchTab(2)),
-      const _OffersPlaceholder(),
+      const OffersScreen(),
       const CartScreen(),
       const ChatbotScreen(),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _tab, children: screens),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+        children: [
+          // Banner de sucursal activa
+          Material(
+            color: AppColors.primary,
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const BranchPickerScreen()),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.store, color: Colors.white, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        selectedBranch.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.swap_horiz,
+                        color: Colors.white70, size: 14),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: IndexedStack(index: _tab, children: screens),
+          ),
+        ],
+      ),
+      ),
       bottomNavigationBar: _OxxoNavBar(
         currentIndex: _tab,
         cartCount: cartCount,
+        isLoggedIn: isLoggedIn,
         onTap: _switchTab,
       ),
     );
@@ -45,11 +104,13 @@ class _MainShellState extends State<MainShell> {
 class _OxxoNavBar extends StatelessWidget {
   final int currentIndex;
   final int cartCount;
+  final bool isLoggedIn;
   final ValueChanged<int> onTap;
 
   const _OxxoNavBar({
     required this.currentIndex,
     required this.cartCount,
+    required this.isLoggedIn,
     required this.onTap,
   });
 
@@ -58,14 +119,16 @@ class _OxxoNavBar extends StatelessWidget {
     _NavItem(Icons.local_offer_outlined, Icons.local_offer, 'Ofertas'),
     _NavItem(Icons.shopping_cart_outlined, Icons.shopping_cart_rounded, 'Carrito'),
     _NavItem(Icons.smart_toy_outlined, Icons.smart_toy_rounded, 'Asistente'),
+    _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Perfil'),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.outline, width: 1)),
+        color: cs.surface,
+        border: Border(top: BorderSide(color: cs.outline, width: 1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -87,6 +150,7 @@ class _OxxoNavBar extends StatelessWidget {
                 item: item,
                 isActive: isActive,
                 badge: (i == 2 && cartCount > 0) ? cartCount : null,
+                dot: (i == 4 && isLoggedIn),
                 onTap: () => onTap(i),
               );
             }),
@@ -108,12 +172,14 @@ class _NavButton extends StatelessWidget {
   final _NavItem item;
   final bool isActive;
   final int? badge;
+  final bool dot;
   final VoidCallback onTap;
 
   const _NavButton({
     required this.item,
     required this.isActive,
     required this.badge,
+    required this.dot,
     required this.onTap,
   });
 
@@ -168,6 +234,19 @@ class _NavButton extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (dot)
+                  Positioned(
+                    right: -3,
+                    top: -3,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
               ],
             ),
             if (isActive) ...[
@@ -197,7 +276,6 @@ class _OffersPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Ofertas')),
-      backgroundColor: AppColors.surface,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

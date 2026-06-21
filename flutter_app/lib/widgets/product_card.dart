@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
+import '../providers/products_provider.dart';
 import '../config/api_config.dart';
+import 'star_rating.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -15,10 +17,15 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final inCart = cart.items.containsKey(product.id);
+    final cs = Theme.of(context).colorScheme;
+    final ratingsMap = context.watch<ProductsProvider>().ratings;
+    final ratingData = ratingsMap[product.id.toString()] as Map<String, dynamic>?;
+    final avgRating = (ratingData?['avg_rating'] as num?)?.toDouble() ?? 0.0;
+    final reviewCount = (ratingData?['total_reviews'] as num?)?.toInt() ?? 0;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
@@ -39,7 +46,7 @@ class ProductCard extends StatelessWidget {
                       const BorderRadius.vertical(top: Radius.circular(8)),
                   child: Container(
                     width: double.infinity,
-                    color: AppColors.surfaceContainerLow,
+                    color: cs.surfaceContainerLow,
                     child: _buildImage(),
                   ),
                 ),
@@ -68,18 +75,27 @@ class ProductCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 2),
             child: Text(
               product.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.onSurface,
+                color: cs.onSurface,
                 height: 1.3,
               ),
             ),
           ),
+          if (reviewCount > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
+              child: StarRating(
+                rating: avgRating,
+                count: reviewCount,
+                starSize: 11,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
             child: Row(
@@ -113,13 +129,13 @@ class ProductCard extends StatelessWidget {
                     height: 30,
                     decoration: BoxDecoration(
                       color: inCart
-                          ? AppColors.surfaceContainer
-                          : AppColors.primary,
+                          ? cs.surfaceContainer
+                          : cs.primary,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       inCart ? Icons.remove : Icons.add,
-                      color: inCart ? AppColors.primary : Colors.white,
+                      color: inCart ? cs.primary : Colors.white,
                       size: 16,
                     ),
                   ),

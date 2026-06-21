@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../providers/theme_provider.dart';
 import '../services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -94,32 +96,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(title: const Text('Configuración')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // ── Toggle de tema ──
+          Consumer<ThemeProvider>(
+            builder: (context, theme, _) => Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainer,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outline),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    theme.isDark ? Icons.dark_mode : Icons.light_mode,
+                    color: cs.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      theme.isDark ? 'Modo oscuro' : 'Modo claro',
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: theme.isDark,
+                    activeColor: cs.primary,
+                    onChanged: (_) => theme.toggle(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // ── Tarjeta info ──
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cs.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.outline),
+              border: Border.all(color: cs.outline),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline,
-                    color: AppColors.primary, size: 20),
+                Icon(Icons.info_outline, color: cs.primary, size: 20),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Ingresa la dirección IP o dominio del servidor donde '
                     'está corriendo la aplicación de ventas.',
                     style: TextStyle(
-                        color: AppColors.onSurfaceVariant,
+                        color: cs.onSurface.withValues(alpha: 0.7),
                         fontSize: 12,
                         height: 1.5),
                   ),
@@ -133,20 +173,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             'Dirección del servidor',
             style: GoogleFonts.montserrat(
-                color: AppColors.onSurface,
+                color: cs.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 13),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _ctrl,
-            style: const TextStyle(color: AppColors.onSurface, fontSize: 14),
+            style: TextStyle(color: cs.onSurface, fontSize: 14),
             keyboardType: TextInputType.url,
             autocorrect: false,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'http://192.168.1.x:5000',
-              prefixIcon: Icon(Icons.dns_outlined,
-                  color: AppColors.onSurfaceVariant),
+              prefixIcon:
+                  Icon(Icons.dns_outlined, color: cs.onSurface.withValues(alpha: 0.5)),
             ),
             onChanged: (_) => setState(() => _testResult = null),
           ),
@@ -168,7 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 _testResult!,
                 style: TextStyle(
-                  color: _testOk ? AppColors.success : AppColors.error,
+                  color: _testOk ? AppColors.success : cs.error,
                   fontSize: 13,
                 ),
               ),
@@ -180,19 +220,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           OutlinedButton.icon(
             onPressed: _testing ? null : _testConnection,
             icon: _testing
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.primary),
+                        strokeWidth: 2, color: cs.primary),
                   )
-                : const Icon(Icons.wifi_find, color: AppColors.primary),
+                : Icon(Icons.wifi_find, color: cs.primary),
             label: Text(
               _testing ? 'Probando...' : 'Probar conexión',
-              style: const TextStyle(color: AppColors.primary),
+              style: TextStyle(color: cs.primary),
             ),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.primary),
+              side: BorderSide(color: cs.primary),
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
@@ -214,7 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const SizedBox(height: 36),
-          const Divider(color: AppColors.outline),
+          Divider(color: cs.outline),
           const SizedBox(height: 8),
 
           // ── Restablecer ──
@@ -229,7 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const SizedBox(height: 24),
-          const _ExamplesCard(),
+          _ExamplesCard(cs: cs),
         ],
       ),
     );
@@ -237,7 +277,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 class _ExamplesCard extends StatelessWidget {
-  const _ExamplesCard();
+  final ColorScheme cs;
+  const _ExamplesCard({required this.cs});
 
   @override
   Widget build(BuildContext context) {
@@ -250,9 +291,9 @@ class _ExamplesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: cs.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +301,7 @@ class _ExamplesCard extends StatelessWidget {
           Text(
             'Ejemplos de dirección',
             style: GoogleFonts.montserrat(
-                color: AppColors.primary,
+                color: cs.primary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600),
           ),
@@ -273,18 +314,19 @@ class _ExamplesCard extends StatelessWidget {
                       width: 5,
                       height: 5,
                       margin: const EdgeInsets.only(right: 8, top: 1),
-                      decoration: const BoxDecoration(
-                        color: AppColors.onSurfaceVariant,
+                      decoration: BoxDecoration(
+                        color: cs.onSurface.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
                     ),
                     Text('${e.$1}: ',
-                        style: const TextStyle(
-                            color: AppColors.onSurfaceVariant, fontSize: 12)),
+                        style: TextStyle(
+                            color: cs.onSurface.withValues(alpha: 0.6),
+                            fontSize: 12)),
                     Expanded(
                       child: Text(e.$2,
-                          style: const TextStyle(
-                              color: AppColors.onSurface,
+                          style: TextStyle(
+                              color: cs.onSurface,
                               fontSize: 12,
                               fontFamily: 'monospace')),
                     ),

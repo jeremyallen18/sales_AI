@@ -2,7 +2,9 @@
 auth_routes.py — Rutas de autenticación básica.
 Login/logout con sesión Flask + endpoint JSON para apps móviles.
 """
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
+import jwt
+import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -17,7 +19,9 @@ def login():
             session["user"] = DEMO_USER
             return redirect(url_for("analytics.dashboard"))
         flash("Credenciales incorrectas", "error")
-    return render_template("login.html")
+    from flask import current_app
+    google_client_id = current_app.config.get("GOOGLE_CLIENT_ID", "")
+    return render_template("login.html", google_client_id=google_client_id)
 
 @auth_bp.route("/api/auth/login", methods=["POST"])
 def api_login():
@@ -27,7 +31,17 @@ def api_login():
     username = (data.get("username") or "").strip()
     password = (data.get("password") or "").strip()
     if username == DEMO_USER and password == DEMO_PASS:
-        return jsonify({"ok": True, "user": username, "token": "demo-token-2024"}), 200
+        token = jwt.encode(
+            {
+                "sub": "0",
+                "user": username,
+                "role": "owner",
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=30),
+            },
+            current_app.config["APP_TOKEN_SECRET"],
+            algorithm="HS256",
+        )
+        return jsonify({"ok": True, "user": username, "token": token, "role": "owner"}), 200
     return jsonify({"error": "Credenciales incorrectas"}), 401
 
 @auth_bp.route("/logout")

@@ -3,7 +3,7 @@ product.py — Modelo de Producto en inventario.
 """
 from flask import request as flask_request
 from ..database.db import db
-from datetime import datetime
+from ..utils import now_mx
 
 class Product(db.Model):
     __tablename__ = "products"
@@ -14,7 +14,7 @@ class Product(db.Model):
     category = db.Column(db.String(60), default="General")
     image_url = db.Column(db.String(300), default="")
     discount_pct = db.Column(db.Float, default=0.0)  # 0–100 %
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now_mx)
     sale_items = db.relationship("SaleItem", backref="product", lazy=True)
 
     def to_dict(self):

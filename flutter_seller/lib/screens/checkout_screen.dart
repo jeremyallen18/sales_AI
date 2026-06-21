@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
+import '../providers/branch_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/products_provider.dart';
 
@@ -44,7 +45,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     setState(() => _processing = true);
     try {
-      final result = await cart.checkout(_clientCtrl.text.trim(), _selectedMethod);
+      final branchId = context.read<BranchProvider>().activeBranchId;
+      final result = await cart.checkout(
+          _clientCtrl.text.trim(), _selectedMethod, branchId: branchId);
       if (!mounted) return;
 
       context.read<ProductsProvider>().load();
@@ -71,69 +74,72 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          backgroundColor: AppColors.navyCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: AppColors.success, size: 28),
-              SizedBox(width: 10),
-              Text('Venta Registrada', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Folio: #${saleId.toString().padLeft(4, '0')}',
-                  style: const TextStyle(color: AppColors.textSec)),
-              const SizedBox(height: 4),
-              Text('Total: ${fmt.format(total)}',
-                  style: const TextStyle(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(methodIcons[paymentMethod] ?? Icons.payments_outlined,
-                      color: AppColors.textSec, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    methodLabels[paymentMethod] ?? paymentMethod,
-                    style: const TextStyle(color: AppColors.textSec, fontSize: 13),
-                  ),
-                ],
-              ),
-              if (change != null) ...[
+        builder: (dCtx) {
+          final dcs = Theme.of(dCtx).colorScheme;
+          return AlertDialog(
+            backgroundColor: dcs.surfaceContainer,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.check_circle, color: AppColors.success, size: 28),
+                const SizedBox(width: 10),
+                Text('Venta Registrada', style: TextStyle(color: dcs.onSurface)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Folio: #${saleId.toString().padLeft(4, '0')}',
+                    style: TextStyle(color: dcs.onSurface.withValues(alpha: 0.6))),
+                const SizedBox(height: 4),
+                Text('Total: ${fmt.format(total)}',
+                    style: const TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20)),
                 const SizedBox(height: 8),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Cambio:',
-                        style: TextStyle(color: AppColors.textSec, fontSize: 14)),
+                    Icon(methodIcons[paymentMethod] ?? Icons.payments_outlined,
+                        color: dcs.onSurface.withValues(alpha: 0.6), size: 16),
+                    const SizedBox(width: 6),
                     Text(
-                      fmt.format(change),
-                      style: const TextStyle(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
+                      methodLabels[paymentMethod] ?? paymentMethod,
+                      style: TextStyle(color: dcs.onSurface.withValues(alpha: 0.6), fontSize: 13),
                     ),
                   ],
                 ),
+                if (change != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Cambio:',
+                          style: TextStyle(color: dcs.onSurface.withValues(alpha: 0.6), fontSize: 14)),
+                      Text(
+                        fmt.format(change),
+                        style: const TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text('ACEPTAR'),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('ACEPTAR'),
+              ),
+            ],
+          );
+        },
       );
     } catch (e) {
       if (!mounted) return;
@@ -152,6 +158,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final fmt = NumberFormat.currency(locale: 'es_MX', symbol: '\$');
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('COBRAR')),
@@ -162,11 +169,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: TextField(
               controller: _clientCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Nombre del cliente (opcional)',
-                prefixIcon: Icon(Icons.person_outline, color: AppColors.textSec),
+                prefixIcon: Icon(Icons.person_outline, color: cs.onSurface.withValues(alpha: 0.6)),
               ),
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: cs.onSurface),
             ),
           ),
 
@@ -176,9 +183,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('MÉTODO DE PAGO',
+                Text('MÉTODO DE PAGO',
                     style: TextStyle(
-                        color: AppColors.textSec,
+                        color: cs.onSurface.withValues(alpha: 0.6),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8)),
@@ -207,11 +214,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))
                     ],
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: InputDecoration(
                       labelText: 'Monto recibido (opcional)',
                       prefixIcon:
-                          Icon(Icons.payments_outlined, color: AppColors.textSec),
+                          Icon(Icons.payments_outlined, color: cs.onSurface.withValues(alpha: 0.6)),
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -230,9 +237,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           // Items list
           Expanded(
             child: cart.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text('Carrito vacío',
-                        style: TextStyle(color: AppColors.textSec)))
+                        style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6))))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     itemCount: cart.items.length,
@@ -242,9 +249,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.navyCard,
+                          color: cs.surfaceContainer,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.divider),
+                          border: Border.all(color: cs.outline),
                         ),
                         child: Row(
                           children: [
@@ -253,8 +260,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(item.product.name,
-                                      style: const TextStyle(
-                                          color: Colors.white,
+                                      style: TextStyle(
+                                          color: cs.onSurface,
                                           fontWeight: FontWeight.w600)),
                                   Text(
                                     item.product.discountPct > 0
@@ -263,7 +270,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     style: TextStyle(
                                         color: item.product.discountPct > 0
                                             ? AppColors.success
-                                            : AppColors.textSec,
+                                            : cs.onSurface.withValues(alpha: 0.6),
                                         fontSize: 13),
                                   ),
                                 ],
@@ -273,19 +280,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline,
-                                      color: AppColors.textSec, size: 22),
+                                  icon: Icon(Icons.remove_circle_outline,
+                                      color: cs.onSurface.withValues(alpha: 0.5), size: 22),
                                   onPressed: () => cart.updateQuantity(
                                       item.product.id, item.quantity - 1),
                                   visualDensity: VisualDensity.compact,
                                 ),
                                 Text('${item.quantity}',
-                                    style: const TextStyle(
-                                        color: Colors.white,
+                                    style: TextStyle(
+                                        color: cs.onSurface,
                                         fontWeight: FontWeight.bold)),
                                 IconButton(
-                                  icon: const Icon(Icons.add_circle_outline,
-                                      color: AppColors.accent, size: 22),
+                                  icon: Icon(Icons.add_circle_outline,
+                                      color: cs.primary, size: 22),
                                   onPressed: item.quantity < item.product.stock
                                       ? () => cart.updateQuantity(
                                           item.product.id, item.quantity + 1)
@@ -297,8 +304,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             const SizedBox(width: 8),
                             Text(
                               fmt.format(item.subtotal),
-                              style: const TextStyle(
-                                  color: AppColors.accent,
+                              style: TextStyle(
+                                  color: cs.primary,
                                   fontWeight: FontWeight.bold),
                             ),
                             IconButton(
@@ -317,9 +324,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           // Total + confirm
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppColors.navyCard,
-              border: Border(top: BorderSide(color: AppColors.divider)),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainer,
+              border: Border(top: BorderSide(color: cs.outline)),
             ),
             child: SafeArea(
               top: false,
@@ -328,12 +335,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Subtotal',
+                      Text('Subtotal',
                           style: TextStyle(
-                              color: AppColors.textSec, fontSize: 13)),
+                              color: cs.onSurface.withValues(alpha: 0.6), fontSize: 13)),
                       Text(fmt.format(cart.subtotalBruto),
-                          style: const TextStyle(
-                              color: AppColors.textSec, fontSize: 13)),
+                          style: TextStyle(
+                              color: cs.onSurface.withValues(alpha: 0.6), fontSize: 13)),
                     ],
                   ),
                   if (cart.discountAmount > 0) ...[
@@ -350,19 +357,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                     ),
                   ],
-                  const Divider(color: AppColors.divider, height: 12),
+                  Divider(color: cs.outline, height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('TOTAL',
+                      Text('TOTAL',
                           style: TextStyle(
-                              color: AppColors.textSec,
+                              color: cs.onSurface.withValues(alpha: 0.6),
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
                       Text(
                         fmt.format(cart.total),
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: cs.onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 24),
                       ),
@@ -372,12 +379,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('IVA incluido (16%)',
+                      Text('IVA incluido (16%)',
                           style: TextStyle(
-                              color: AppColors.textSec, fontSize: 11)),
+                              color: cs.onSurface.withValues(alpha: 0.6), fontSize: 11)),
                       Text(fmt.format(cart.taxAmount),
-                          style: const TextStyle(
-                              color: AppColors.textSec, fontSize: 11)),
+                          style: TextStyle(
+                              color: cs.onSurface.withValues(alpha: 0.6), fontSize: 11)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -417,6 +424,7 @@ class _PaymentMethodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     const methods = [
       ('efectivo', Icons.payments_outlined, 'Efectivo'),
       ('tarjeta', Icons.credit_card_outlined, 'Tarjeta'),
@@ -436,11 +444,11 @@ class _PaymentMethodSelector extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.accent.withValues(alpha: 0.15)
-                      : AppColors.navyBg,
+                      ? cs.primary.withValues(alpha: 0.15)
+                      : cs.surface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isSelected ? AppColors.accent : AppColors.divider,
+                    color: isSelected ? cs.primary : cs.outline,
                     width: isSelected ? 2 : 1,
                   ),
                 ),
@@ -448,12 +456,12 @@ class _PaymentMethodSelector extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(m.$2,
-                        color: isSelected ? AppColors.accent : AppColors.textSec,
+                        color: isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.5),
                         size: 20),
                     const SizedBox(height: 4),
                     Text(m.$3,
                         style: TextStyle(
-                          color: isSelected ? AppColors.accent : AppColors.textSec,
+                          color: isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.5),
                           fontSize: 10,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         )),

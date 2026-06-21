@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/settings_service.dart';
@@ -43,14 +44,16 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showServerConfig() {
     final urlCtrl = TextEditingController(text: SettingsService.currentBaseUrl);
 
+    final cs = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.navyCard,
+      backgroundColor: cs.surfaceContainer,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final innerCs = Theme.of(ctx).colorScheme;
         return Padding(
           padding: EdgeInsets.fromLTRB(
               24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
@@ -58,33 +61,33 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.dns_outlined, color: AppColors.accent, size: 24),
-                  SizedBox(width: 10),
+                  Icon(Icons.dns_outlined, color: innerCs.primary, size: 24),
+                  const SizedBox(width: 10),
                   Text(
                     'Configurar Servidor',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: innerCs.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 18),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Ingresa la dirección IP y puerto del servidor.',
-                style: TextStyle(color: AppColors.textSec, fontSize: 13),
+                style: TextStyle(color: innerCs.onSurface.withValues(alpha: 0.6), fontSize: 13),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: urlCtrl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'URL del servidor',
                   hintText: 'http://192.168.0.10:5000',
-                  prefixIcon: Icon(Icons.link, color: AppColors.textSec),
+                  prefixIcon: Icon(Icons.link, color: innerCs.onSurface.withValues(alpha: 0.5)),
                 ),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: innerCs.onSurface),
                 keyboardType: TextInputType.url,
                 autofocus: true,
               ),
@@ -102,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.divider),
+                        side: BorderSide(color: innerCs.outline),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text('RESET'),
@@ -141,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: Center(
@@ -153,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
-                  color: AppColors.accent,
+                  color: cs.primary,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(Icons.storefront, size: 48, color: Colors.white),
@@ -162,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'Sales AI',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
+                      color: cs.onSurface,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,
                     ),
@@ -173,49 +177,79 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
-                    ?.copyWith(color: AppColors.textSec),
+                    ?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
               ),
               const SizedBox(height: 12),
-              // Server URL indicator + config button
-              GestureDetector(
-                onTap: _showServerConfig,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.navyCard,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.dns_outlined,
-                          color: AppColors.textSec, size: 16),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          SettingsService.currentBaseUrl,
-                          style: const TextStyle(
-                              color: AppColors.textSec, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
+              // Server URL indicator + config button + QR scan
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: _showServerConfig,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainer,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: cs.outline),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.dns_outlined,
+                                color: cs.onSurface.withValues(alpha: 0.5),
+                                size: 16),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                SettingsService.currentBaseUrl,
+                                style: TextStyle(
+                                    color:
+                                        cs.onSurface.withValues(alpha: 0.6),
+                                    fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(Icons.edit_outlined,
+                                color: cs.primary, size: 14),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.edit_outlined,
-                          color: AppColors.accent, size: 14),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  // Botón escanear QR del servidor
+                  Tooltip(
+                    message: 'Escanear QR del servidor',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: _scanServerQr,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.4)),
+                        ),
+                        child: Icon(Icons.qr_code_scanner,
+                            color: cs.primary, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 28),
               TextField(
                 controller: _userCtrl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Usuario',
-                  prefixIcon: Icon(Icons.person_outline, color: AppColors.textSec),
+                  prefixIcon: Icon(Icons.person_outline, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
@@ -225,16 +259,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: InputDecoration(
                   labelText: 'Contraseña',
                   prefixIcon:
-                      const Icon(Icons.lock_outline, color: AppColors.textSec),
+                      Icon(Icons.lock_outline, color: cs.onSurface.withValues(alpha: 0.5)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscure ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.textSec,
+                      color: cs.onSurface.withValues(alpha: 0.5),
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 28),
@@ -256,9 +290,156 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                 ),
               ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: cs.outline.withValues(alpha: 0.6))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('o', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.4), fontSize: 12)),
+                  ),
+                  Expanded(child: Divider(color: cs.outline.withValues(alpha: 0.6))),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: auth.loading ? null : _submitGoogle,
+                  icon: _GoogleIcon(),
+                  label: const Text('Continuar con Google'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: cs.outline),
+                    foregroundColor: cs.onSurface,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _scanServerQr() async {
+    final url = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const _QrScannerScreen()),
+    );
+    if (url != null && url.startsWith('http') && mounted) {
+      await SettingsService.saveBaseUrl(url);
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Servidor: $url')),
+      );
+    }
+  }
+
+  Future<void> _submitGoogle() async {
+    final auth = context.read<AuthProvider>();
+    final ok   = await auth.loginWithGoogle();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? 'Error con Google'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
+}
+
+class _GoogleIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: CustomPaint(painter: _GooglePainter()),
+    );
+  }
+}
+
+class _GooglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final r = Rect.fromLTWH(0, 0, size.width, size.height);
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(r, -2.4, 1.6, true, paint);
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(r, -0.8, 1.6, true, paint);
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(r, 0.8, 1.6, true, paint);
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(r, 2.4, 1.6, true, paint);
+    paint.color = Colors.white;
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width * 0.3, paint);
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
+}
+
+// ── Pantalla de escaneo QR para configurar el servidor ───────────────────────
+
+class _QrScannerScreen extends StatefulWidget {
+  const _QrScannerScreen();
+
+  @override
+  State<_QrScannerScreen> createState() => _QrScannerScreenState();
+}
+
+class _QrScannerScreenState extends State<_QrScannerScreen> {
+  bool _detected = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ESCANEAR QR SERVIDOR'),
+        leading: const BackButton(),
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            onDetect: (capture) {
+              if (_detected) return;
+              final barcode = capture.barcodes.firstOrNull;
+              final url = barcode?.rawValue;
+              if (url != null && url.startsWith('http')) {
+                _detected = true;
+                Navigator.of(context).pop(url);
+              }
+            },
+          ),
+          // Marco guía
+          Center(
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                border: Border.all(color: cs.primary, width: 3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Text(
+              'Apunta al QR que aparece en la\nterminal al iniciar el servidor',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

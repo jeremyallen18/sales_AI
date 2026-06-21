@@ -3,13 +3,19 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>VentaIA — Panel de Administración</title>
+  <title>TiendIA — Panel de Administración</title>
   <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    #branchMap { height: 220px; border-radius: 10px; z-index: 1; }
+    .leaflet-container { font-family: 'Inter', sans-serif; }
+  </style>
   <script>
     tailwind.config = {
       theme: {
@@ -68,15 +74,15 @@
 <!-- ═══════════════════════════════════════════════════════
      SIDEBAR
      ═══════════════════════════════════════════════════════ -->
-<aside class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-highest z-50 p-4 gap-3">
+<aside class="sidebar hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-surface-variant z-50 p-4 gap-3">
 
   <!-- Brand -->
   <div class="flex items-center gap-3 px-3 py-3 mb-2">
-    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
-      <span class="material-symbols-outlined text-white text-2xl" style="font-variation-settings:'FILL' 1;">storefront</span>
+    <div class="icon-tile w-11 h-11 shrink-0">
+      <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">storefront</span>
     </div>
     <div>
-      <h1 class="font-display font-extrabold text-lg text-primary leading-tight">VentaIA</h1>
+      <h1 class="font-display font-extrabold text-lg text-primary leading-tight tracking-tight">TiendIA</h1>
       <p class="text-xs text-on-surface-variant leading-tight">Panel Admin</p>
     </div>
   </div>
@@ -99,10 +105,26 @@
       <span class="material-symbols-outlined text-xl">history</span>
       <span class="font-label-lg text-label-lg">Historial</span>
     </button>
+    <button onclick="showPanel('sucursales', this)" class="nav-btn flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-3 py-2.5 transition-colors duration-200 text-left w-full">
+      <span class="material-symbols-outlined text-xl">store_mall_directory</span>
+      <span class="font-label-lg text-label-lg">Sucursales</span>
+    </button>
+    <button onclick="showPanel('resenas', this)" class="nav-btn flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-3 py-2.5 transition-colors duration-200 text-left w-full">
+      <span class="material-symbols-outlined text-xl">reviews</span>
+      <span class="font-label-lg text-label-lg">Reseñas</span>
+    </button>
+    <button onclick="showPanel('ofertas', this)" class="nav-btn flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-3 py-2.5 transition-colors duration-200 text-left w-full">
+      <span class="material-symbols-outlined text-xl">local_offer</span>
+      <span class="font-label-lg text-label-lg">Ofertas</span>
+    </button>
+    <button onclick="showPanel('combos', this)" class="nav-btn flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-3 py-2.5 transition-colors duration-200 text-left w-full">
+      <span class="material-symbols-outlined text-xl">dining</span>
+      <span class="font-label-lg text-label-lg">Combos</span>
+    </button>
   </nav>
 
   <!-- CTA Asistente IA -->
-  <button onclick="showPanel('chatbot', null)" class="w-full bg-primary text-on-primary font-label-lg text-label-lg py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-sm">
+  <button onclick="showPanel('chatbot', null)" class="cta-ia w-full text-on-primary font-label-lg text-label-lg py-3 rounded-xl flex items-center justify-center gap-2">
     <span class="material-symbols-outlined text-xl">smart_toy</span>
     Asistente IA
   </button>
@@ -122,8 +144,14 @@
 <div class="flex-1 md:ml-64 flex flex-col min-h-screen">
 
   <!-- Top Header -->
-  <header class="sticky top-0 z-40 bg-surface-container-lowest border-b border-surface-variant flex items-center h-16 px-4 md:px-6 gap-4 shrink-0">
+  <header class="glass sticky top-0 z-40 border-b flex items-center h-16 px-4 md:px-6 gap-4 shrink-0">
     <h2 class="font-headline-md text-on-surface font-bold flex-1" id="pageTitle">Dashboard</h2>
+    <select id="branchSelector"
+      onchange="setActiveBranch(this.value)"
+      class="text-xs rounded-lg border border-outline-variant bg-surface-container px-2.5 py-1.5 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+      style="max-width:160px;display:none">
+      <option value="">Todas las sucursales</option>
+    </select>
     <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-error-container text-on-error-container" id="lowStockBadge" style="display:none;">
       <span class="material-symbols-outlined align-middle mr-0.5" style="font-size:13px;">warning</span>Stock Bajo
     </span>
@@ -154,69 +182,116 @@
       <!-- Stat Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] relative overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-shadow">
-          <div class="absolute top-0 right-0 p-3 opacity-10"><span class="material-symbols-outlined text-5xl text-primary">payments</span></div>
-          <div class="relative">
-            <div class="flex items-center gap-1.5 text-on-surface-variant text-xs mb-2">
-              <span class="material-symbols-outlined text-primary" style="font-size:14px;">trending_up</span>
-              <span>Ingresos Totales</span>
-            </div>
-            <h3 class="text-2xl font-extrabold text-on-surface" id="s-ingresos">$0.00</h3>
+        <div class="stat-card card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4" style="--stagger-i:0">
+          <div class="icon-tile w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">payments</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-on-surface-variant text-xs font-medium mb-1 truncate">Ingresos Totales</p>
+            <h3 class="text-2xl font-extrabold text-on-surface tabular-nums" id="s-ingresos">$0.00</h3>
           </div>
         </div>
 
-        <div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] relative overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-shadow">
-          <div class="absolute top-0 right-0 p-3 opacity-10"><span class="material-symbols-outlined text-5xl text-secondary">shopping_bag</span></div>
-          <div class="relative">
-            <div class="flex items-center gap-1.5 text-on-surface-variant text-xs mb-2">
-              <span class="material-symbols-outlined text-secondary" style="font-size:14px;">receipt_long</span>
-              <span>Ventas Registradas</span>
-            </div>
-            <h3 class="text-2xl font-extrabold text-on-surface" id="s-ventas">0</h3>
+        <div class="stat-card card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4" style="--stagger-i:1">
+          <div class="icon-tile icon-tile--gold w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">shopping_bag</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-on-surface-variant text-xs font-medium mb-1 truncate">Ventas Registradas</p>
+            <h3 class="text-2xl font-extrabold text-on-surface tabular-nums" id="s-ventas">0</h3>
           </div>
         </div>
 
-        <div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] relative overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-shadow">
-          <div class="absolute top-0 right-0 p-3 opacity-10"><span class="material-symbols-outlined text-5xl text-on-surface-variant">inventory</span></div>
-          <div class="relative">
-            <div class="flex items-center gap-1.5 text-on-surface-variant text-xs mb-2">
-              <span class="material-symbols-outlined" style="font-size:14px;">inventory_2</span>
-              <span>Productos</span>
-            </div>
-            <h3 class="text-2xl font-extrabold text-on-surface" id="s-productos">0</h3>
+        <div class="stat-card card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4" style="--stagger-i:2">
+          <div class="icon-tile icon-tile--neutral w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">inventory_2</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-on-surface-variant text-xs font-medium mb-1 truncate">Productos</p>
+            <h3 class="text-2xl font-extrabold text-on-surface tabular-nums" id="s-productos">0</h3>
           </div>
         </div>
 
-        <div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] relative overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-shadow">
-          <div class="absolute top-0 right-0 p-3 opacity-10"><span class="material-symbols-outlined text-5xl text-error">warning</span></div>
-          <div class="relative">
-            <div class="flex items-center gap-1.5 text-on-surface-variant text-xs mb-2">
-              <span class="material-symbols-outlined text-error" style="font-size:14px;">inventory</span>
-              <span>Stock Bajo</span>
-            </div>
-            <h3 class="text-2xl font-extrabold text-error" id="s-bajo">0</h3>
+        <div class="stat-card card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4" style="--stagger-i:3">
+          <div class="icon-tile icon-tile--warn w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">warning</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-on-surface-variant text-xs font-medium mb-1 truncate">Stock Bajo</p>
+            <h3 class="text-2xl font-extrabold text-error tabular-nums" id="s-bajo">0</h3>
           </div>
         </div>
       </div>
 
-      <!-- Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE]">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="font-bold text-on-surface">Tendencia de Ingresos</h3>
-            <span class="text-xs text-on-surface-variant bg-surface-container-low px-2 py-1 rounded-full">30 días</span>
+      <!-- Power BI Embed -->
+      <div class="card-elevated anim-fade-up rounded-2xl overflow-hidden" style="--stagger-i:4; background:#0a0a0a; border:1px solid #222;">
+        <div id="powerbi-container" class="relative w-full" style="height:700px; overflow:hidden; background:#0a0a0a;">
+          <iframe
+            id="powerbi-frame"
+            src=""
+            frameborder="0"
+            allowfullscreen
+            style="display:none; border:none; position:absolute; top:0; left:0; width:100%; height:100%;">
+          </iframe>
+          <!-- Placeholder cuando no hay URL configurada -->
+          <div id="powerbi-placeholder" class="flex flex-col items-center justify-center h-full gap-4 text-on-surface-variant">
+            <span class="material-symbols-outlined text-5xl text-outline" style="font-variation-settings:'FILL' 1;">analytics</span>
+            <div class="text-center max-w-xs">
+              <p class="font-semibold text-sm text-on-surface mb-1">Power BI no configurado</p>
+              <p class="text-xs leading-relaxed">
+                Abre <code class="bg-surface-container px-1 py-0.5 rounded text-primary font-mono">static/js/app.js</code>
+                y asigna la URL de incrustación a la variable
+                <code class="bg-surface-container px-1 py-0.5 rounded text-primary font-mono">POWERBI_EMBED_URL</code>.
+              </p>
+            </div>
           </div>
-          <div class="h-56"><canvas id="chartIngresos"></canvas></div>
         </div>
-        <div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE]">
-          <h3 class="font-bold text-on-surface mb-4">Top Productos</h3>
-          <div class="h-56"><canvas id="chartTop"></canvas></div>
+      </div>
+
+      <!-- Corte de Caja -->
+      <div class="card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] p-5" style="--stagger-i:6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="icon-tile w-10 h-10 shrink-0">
+              <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">receipt</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-on-surface text-sm">Corte de Caja</h3>
+              <p class="text-xs text-on-surface-variant mt-0.5">Descarga el resumen financiero del período</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Selector de período anterior -->
+            <select id="corteWeekOffset"
+              class="text-xs rounded-lg border border-outline-variant bg-surface-container px-2.5 py-1.5 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="0">Semana actual</option>
+              <option value="1">Semana anterior</option>
+              <option value="2">Hace 2 semanas</option>
+            </select>
+            <button onclick="downloadCorte('semanal')"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-primary text-primary hover:bg-primary hover:text-on-primary transition-colors text-xs font-semibold whitespace-nowrap">
+              <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+              Corte Semanal
+            </button>
+            <select id="corteMonthOffset"
+              class="text-xs rounded-lg border border-outline-variant bg-surface-container px-2.5 py-1.5 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="0">Mes actual</option>
+              <option value="1">Mes anterior</option>
+              <option value="2">Hace 2 meses</option>
+            </select>
+            <button onclick="downloadCorte('mensual')"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container transition-colors text-xs font-semibold whitespace-nowrap">
+              <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+              Corte Mensual
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Recent Sales -->
-      <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] overflow-hidden">
-        <div class="px-5 py-4 border-b border-surface-container-highest">
+      <div class="card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden" style="--stagger-i:7">
+        <div class="px-5 py-4 border-b border-surface-container-highest flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary" style="font-size:20px;">receipt_long</span>
           <h3 class="font-bold text-on-surface">Ventas Recientes</h3>
         </div>
         <div class="overflow-x-auto">
@@ -252,6 +327,11 @@
           <select class="bg-surface-container-low border border-surface-variant rounded-lg text-sm px-3 py-2 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" id="posCategory" onchange="filterPosProducts()">
             <option value="">Todas las categorías</option>
           </select>
+          <button onclick="openPosCombosSheet()"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors text-sm font-semibold shrink-0">
+            <span class="material-symbols-outlined text-base">dining</span>
+            Combos
+          </button>
         </div>
         <div class="flex-1 overflow-y-auto p-4 scrollbar-thin">
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" id="posProductsGrid">
@@ -292,7 +372,7 @@
               </button>
             </div>
           </div>
-          <button class="w-full bg-primary text-on-primary font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-md disabled:opacity-30 disabled:cursor-not-allowed" disabled id="btnConfirmar" onclick="confirmarVenta()">
+          <button class="cta-ia w-full text-on-primary font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none" disabled id="btnConfirmar" onclick="confirmarVenta()">
             <span class="material-symbols-outlined" style="font-size:20px;">check_circle</span>
             Confirmar Venta
           </button>
@@ -302,17 +382,24 @@
 
     <!-- ── PANEL: HISTORIAL ── -->
     <section id="panel-historial" class="panel p-4 md:p-6 space-y-5">
-      <div>
-        <h1 class="text-xl font-bold text-on-surface">Historial de Ventas</h1>
-        <p class="text-sm text-on-surface-variant mt-0.5">Registro completo de todas las transacciones.</p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-bold text-on-surface">Historial de Ventas</h1>
+          <p class="text-sm text-on-surface-variant mt-0.5">Registro completo de todas las transacciones.</p>
+        </div>
+        <button class="border border-surface-variant bg-surface-container-lowest text-on-surface font-semibold text-sm px-5 py-2.5 rounded-xl flex items-center gap-2 hover:bg-surface-container-low transition-colors whitespace-nowrap" onclick="exportSalesCSV()">
+          <span class="material-symbols-outlined text-primary" style="font-size:20px;">download</span>
+          Exportar CSV
+        </button>
       </div>
-      <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] overflow-hidden">
+      <div class="card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm" id="tbl-historial">
             <thead class="bg-surface-container-low">
               <tr>
                 <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">#</th>
                 <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Fecha</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Tienda</th>
                 <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Cliente</th>
                 <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Productos</th>
                 <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Total</th>
@@ -320,7 +407,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-container-highest">
-              <tr><td colspan="6" class="px-5 py-8 text-center text-on-surface-variant text-sm">Cargando...</td></tr>
+              <tr><td colspan="7" class="px-5 py-8 text-center text-on-surface-variant text-sm">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -334,7 +421,7 @@
           <h1 class="text-xl font-bold text-on-surface">Inventario</h1>
           <p class="text-sm text-on-surface-variant mt-0.5">Gestiona tus productos y niveles de stock.</p>
         </div>
-        <button class="bg-primary text-on-primary font-semibold text-sm px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-primary-container transition-colors shadow-sm whitespace-nowrap" onclick="openModalProduct(null)">
+        <button class="cta-ia text-on-primary font-semibold text-sm px-5 py-2.5 rounded-xl flex items-center gap-2 whitespace-nowrap" onclick="openModalProduct(null)">
           <span class="material-symbols-outlined" style="font-size:20px;">add</span>
           Agregar Producto
         </button>
@@ -343,7 +430,7 @@
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size:18px;">search</span>
         <input class="w-full pl-9 pr-3 py-2 bg-surface-container-lowest border border-surface-variant rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors" id="invSearch" oninput="filterInventory()" placeholder="Buscar producto..." type="text"/>
       </div>
-      <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-[#EEEEEE] overflow-hidden">
+      <div class="card-elevated anim-fade-up bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm" id="tbl-inventario">
             <thead class="bg-surface-container-low">
@@ -374,13 +461,13 @@
           </h1>
           <p class="text-sm text-on-surface-variant mt-0.5">Pregunta sobre ventas, stock, tendencias o estrategias.</p>
         </div>
-        <div class="flex-1 bg-surface-container-lowest rounded-xl border border-[#EEEEEE] shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden">
+        <div class="flex-1 bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden">
           <!-- Sugerencias -->
           <div class="px-4 py-3 border-b border-surface-container-highest flex flex-wrap gap-2 shrink-0">
-            <button class="px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary transition-colors" onclick="sendSuggestion(this)">¿Cuál es mi producto más vendido?</button>
-            <button class="px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary transition-colors" onclick="sendSuggestion(this)">¿Qué productos tienen stock bajo?</button>
-            <button class="px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary transition-colors" onclick="sendSuggestion(this)">¿Cómo puedo aumentar mis ventas?</button>
-            <button class="px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary transition-colors" onclick="sendSuggestion(this)">Resumen de ventas del mes</button>
+            <button class="chat-chip px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary" onclick="sendSuggestion(this)">¿Cuál es mi producto más vendido?</button>
+            <button class="chat-chip px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary" onclick="sendSuggestion(this)">¿Qué productos tienen stock bajo?</button>
+            <button class="chat-chip px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary" onclick="sendSuggestion(this)">¿Cómo puedo aumentar mis ventas?</button>
+            <button class="chat-chip px-3 py-1.5 bg-surface-container-low text-on-surface-variant text-xs font-medium rounded-full hover:bg-surface-container hover:text-primary" onclick="sendSuggestion(this)">Resumen de ventas del mes</button>
           </div>
           <!-- Mensajes -->
           <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" id="chatMessages">
@@ -399,8 +486,309 @@
       </div>
     </section>
 
+    <!-- ── PANEL: SUCURSALES ── -->
+    <section id="panel-sucursales" class="panel p-4 md:p-6 space-y-6">
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="font-headline-lg-mobile md:text-2xl font-bold text-on-surface">Sucursales</h1>
+          <p class="text-sm text-on-surface-variant mt-0.5">Administra tu red de tiendas.</p>
+        </div>
+        <button onclick="openBranchModal()" class="flex items-center gap-2 bg-primary text-on-primary text-sm font-semibold px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
+          <span class="material-symbols-outlined text-base">add</span>
+          Nueva sucursal
+        </button>
+      </div>
+
+      <!-- Comparativa de ingresos -->
+      <div class="bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] p-5">
+        <h2 class="font-semibold text-base mb-4 text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">bar_chart</span>
+          Comparativa de ingresos por sucursal
+        </h2>
+        <canvas id="branchComparisonChart" style="max-height:260px;"></canvas>
+      </div>
+
+      <!-- Tabla de sucursales -->
+      <div class="bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-surface-container-highest">
+          <h2 class="font-semibold text-base text-on-surface">Listado de sucursales</h2>
+          <button onclick="loadBranches()" class="text-xs text-primary font-medium hover:underline">Actualizar</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-surface-container-low">
+              <tr>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Nombre</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Ciudad</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Horario</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Estado</th>
+                <th class="text-left px-5 py-3 text-xs font-semibold text-on-surface-variant">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="branches-tbody" class="divide-y divide-surface-container-highest">
+              <tr><td colspan="5" class="px-5 py-8 text-center text-on-surface-variant text-sm">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PANEL: RESEÑAS ── -->
+    <section id="panel-resenas" class="panel p-4 md:p-6 space-y-6">
+
+      <div>
+        <h1 class="font-headline-lg-mobile md:text-2xl font-bold text-on-surface">Reseñas e Impacto</h1>
+        <p class="text-sm text-on-surface-variant mt-0.5">Calificaciones de clientes sobre productos y sucursales.</p>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="stat-card card-elevated bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4">
+          <div class="icon-tile w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">reviews</span>
+          </div>
+          <div>
+            <p class="text-on-surface-variant text-xs font-medium mb-1">Total Reseñas</p>
+            <h3 class="text-2xl font-extrabold text-on-surface tabular-nums" id="r-total">0</h3>
+          </div>
+        </div>
+        <div class="stat-card card-elevated bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4">
+          <div class="icon-tile w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">store_mall_directory</span>
+          </div>
+          <div>
+            <p class="text-on-surface-variant text-xs font-medium mb-1">Sucursales — Promedio</p>
+            <h3 class="text-2xl font-extrabold text-on-surface tabular-nums" id="r-branch-avg">—</h3>
+          </div>
+        </div>
+        <div class="stat-card card-elevated bg-surface-container-lowest rounded-2xl p-5 border border-[#EEEEEE] flex items-center gap-4">
+          <div class="icon-tile w-12 h-12">
+            <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">shopping_bag</span>
+          </div>
+          <div>
+            <p class="text-on-surface-variant text-xs font-medium mb-1">Productos — Promedio</p>
+            <h3 class="text-2xl font-extrabold text-on-surface tabular-nums" id="r-product-avg">—</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sucursales + Productos (2 columnas en desktop) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Tabla sucursales -->
+        <div class="card-elevated bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden">
+          <div class="px-5 py-4 border-b border-outline-variant/30 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings:'FILL' 1">store_mall_directory</span>
+            <h2 class="font-semibold text-on-surface text-sm">Calificación por Sucursal</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-surface-container text-on-surface-variant text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-2 text-left font-medium">Sucursal</th>
+                  <th class="px-4 py-2 text-center font-medium">Promedio</th>
+                  <th class="px-4 py-2 text-center font-medium">Reseñas</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-branch-ratings" class="divide-y divide-outline-variant/20"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tabla productos -->
+        <div class="card-elevated bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden">
+          <div class="px-5 py-4 border-b border-outline-variant/30 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings:'FILL' 1">shopping_bag</span>
+            <h2 class="font-semibold text-on-surface text-sm">Productos Mejor Calificados</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-surface-container text-on-surface-variant text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-2 text-left font-medium">Producto</th>
+                  <th class="px-4 py-2 text-center font-medium">Promedio</th>
+                  <th class="px-4 py-2 text-center font-medium">Reseñas</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-product-ratings" class="divide-y divide-outline-variant/20"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feed de reseñas recientes -->
+      <div class="card-elevated bg-surface-container-lowest rounded-2xl border border-[#EEEEEE] overflow-hidden">
+        <div class="px-5 py-4 border-b border-outline-variant/30 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings:'FILL' 1">chat_bubble</span>
+          <h2 class="font-semibold text-on-surface text-sm">Reseñas Recientes</h2>
+        </div>
+        <div id="review-feed" class="flex flex-col divide-y divide-outline-variant/20 max-h-[480px] overflow-y-auto"></div>
+      </div>
+
+    </section>
+
+    <!-- ── PANEL: OFERTAS ── -->
+    <section id="panel-ofertas" class="panel p-4 md:p-6 space-y-6">
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="font-headline-lg-mobile md:text-2xl font-bold text-on-surface">Gestión de Ofertas</h1>
+          <p class="text-sm text-on-surface-variant mt-0.5">Productos con descuento o etiqueta de oferta activa.</p>
+        </div>
+        <button onclick="loadOffers()" class="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors font-medium text-on-surface">
+          <span class="material-symbols-outlined text-base">refresh</span>
+          Actualizar
+        </button>
+      </div>
+
+      <div id="offers-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="col-span-full py-10 text-center text-on-surface-variant text-sm">Cargando...</div>
+      </div>
+
+    </section>
+
+    <!-- ── PANEL: COMBOS ── -->
+    <section id="panel-combos" class="panel p-4 md:p-6 space-y-6">
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="font-headline-lg-mobile md:text-2xl font-bold text-on-surface">Combos</h1>
+          <p class="text-sm text-on-surface-variant mt-0.5">Paquetes de productos a precio especial.</p>
+        </div>
+        <button onclick="openComboModal()" class="flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors font-semibold">
+          <span class="material-symbols-outlined text-base">add</span>
+          Nuevo combo
+        </button>
+      </div>
+
+      <div id="combos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="col-span-full py-10 text-center text-on-surface-variant text-sm">Cargando...</div>
+      </div>
+
+    </section>
+
   </div><!-- /panels container -->
 </div><!-- /main wrapper -->
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: POS COMBOS SHEET
+     ═══════════════════════════════════════════════════════ -->
+<div id="modal-pos-combos" style="display:none;" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
+  <div class="w-full max-w-2xl bg-surface-container-lowest rounded-t-2xl p-5 max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between mb-4 shrink-0">
+      <h3 class="font-bold text-lg text-on-surface">Agregar combo al carrito</h3>
+      <button onclick="document.getElementById('modal-pos-combos').style.display='none'"
+        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+    <div id="pos-combos-list" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: COMBO
+     ═══════════════════════════════════════════════════════ -->
+<div id="modal-combo" style="display:none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+  <div class="modal-box w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-lg text-on-surface" id="comboModalTitle">Nuevo Combo</h3>
+      <button onclick="closeComboModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+
+    <input type="hidden" id="cId" />
+
+    <div class="space-y-4">
+      <!-- Nombre -->
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Nombre del combo *</label>
+        <input id="cName" type="text" placeholder="Ej: Combo Refresco + Snack" class="modal-input" />
+      </div>
+      <!-- Descripción -->
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Descripción</label>
+        <textarea id="cDesc" rows="2" placeholder="Descripción opcional..." class="modal-input resize-none"></textarea>
+      </div>
+      <!-- Precio + Sucursal -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-1">Precio del combo ($) *</label>
+          <input id="cPrice" type="number" min="0" step="0.01" placeholder="0.00" class="modal-input" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-1">Sucursal</label>
+          <select id="cBranch" class="modal-input text-sm">
+            <option value="">Global (todas)</option>
+          </select>
+        </div>
+      </div>
+      <!-- Activo -->
+      <label class="flex items-center gap-3 cursor-pointer select-none">
+        <input id="cActive" type="checkbox" checked class="w-4 h-4 accent-primary" />
+        <span class="text-sm text-on-surface">Combo activo (visible para clientes)</span>
+      </label>
+      <!-- Productos del combo -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-semibold text-on-surface">Productos del combo</span>
+          <button onclick="addComboItemRow()"
+            class="text-xs px-3 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors font-medium text-on-surface">
+            + Agregar producto
+          </button>
+        </div>
+        <div id="cItemsContainer" class="space-y-2"></div>
+        <p class="text-xs text-on-surface-variant mt-1">Selecciona los productos y la cantidad de cada uno.</p>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeComboModal()"
+        class="flex-1 py-2.5 rounded-xl border border-outline-variant text-on-surface hover:bg-surface-container transition-colors text-sm font-semibold">
+        Cancelar
+      </button>
+      <button onclick="saveCombo()"
+        class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors text-sm font-semibold">
+        Guardar combo
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: OFERTA
+     ═══════════════════════════════════════════════════════ -->
+<div id="modal-offer" style="display:none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="modal-box w-full max-w-sm">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-lg text-on-surface" id="offerModalTitle">Editar oferta</h3>
+      <button onclick="closeOfferModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Descuento (%)</label>
+        <input id="offerDiscountInput" type="number" min="0" max="100" step="1" placeholder="0" class="modal-input" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Etiqueta de oferta</label>
+        <input id="offerBadgeInput" type="text" maxlength="40" placeholder="Ej: 2x1, Flash, Precio especial" class="modal-input" />
+        <p class="text-xs text-on-surface-variant mt-1">Deja vacío para no mostrar etiqueta.</p>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="saveOffer(true)" class="flex-1 py-2.5 rounded-xl border border-error text-error hover:bg-error/10 transition-colors text-sm font-semibold">
+        Quitar oferta
+      </button>
+      <button onclick="saveOffer(false)" class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors text-sm font-semibold">
+        Guardar
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════
      MODAL: PRODUCTO
@@ -464,12 +852,136 @@
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: SUCURSAL
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalBranch" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:16px;">
+  <div class="modal-box" style="max-width:580px; width:100%; max-height:92vh; overflow-y:auto;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-lg text-on-surface" id="branchModalTitle">Nueva Sucursal</h3>
+      <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant" onclick="closeBranchModal()">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+    <input type="hidden" id="bId"/>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Nombre *</label>
+        <input class="modal-input" id="bName" placeholder="OXXO Centro"/>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-1">Ciudad</label>
+          <input class="modal-input" id="bCity" placeholder="Ciudad de México"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-1">Estado</label>
+          <input class="modal-input" id="bState" placeholder="CDMX"/>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Dirección</label>
+        <input class="modal-input" id="bAddress" placeholder="Av. Principal 123"/>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-1">Apertura</label>
+          <input class="modal-input" id="bOpening" placeholder="08:00" value="08:00"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-1">Cierre</label>
+          <input class="modal-input" id="bClosing" placeholder="22:00" value="22:00"/>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">Teléfono</label>
+        <input class="modal-input" id="bPhone" placeholder="+52 55 0000 0000"/>
+      </div>
+
+      <!-- Mapa de ubicación -->
+      <div>
+        <label class="block text-xs font-medium text-on-surface-variant mb-1">
+          Ubicación — <span class="font-normal text-on-surface-variant">haz clic en el mapa para marcar la posición exacta</span>
+        </label>
+        <div id="branchMap" class="border border-surface-variant rounded-xl overflow-hidden mb-2"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-on-surface-variant mb-1">Latitud</label>
+            <input class="modal-input" id="bLat" placeholder="19.4326" type="number" step="any" oninput="syncMapFromInputs()"/>
+          </div>
+          <div>
+            <label class="block text-xs text-on-surface-variant mb-1">Longitud</label>
+            <input class="modal-input" id="bLng" placeholder="-99.1332" type="number" step="any" oninput="syncMapFromInputs()"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button class="flex-1 py-2.5 border border-surface-variant rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-low" onclick="closeBranchModal()">Cancelar</button>
+        <button class="flex-1 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:opacity-90" onclick="saveBranch()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: STOCK DE SUCURSAL
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalBranchStock" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:16px;">
+  <div class="modal-box" style="max-width:640px; width:100%; max-height:92vh; overflow-y:auto;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-lg text-on-surface" id="branchStockTitle">Inventario — Sucursal</h3>
+      <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant" onclick="document.getElementById('modalBranchStock').style.display='none'">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+    <div id="branchStockBody">
+      <div class="py-10 text-center text-on-surface-variant text-sm">Cargando inventario...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: HISTORIAL DE SUCURSAL
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalBranchHistory" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:16px;">
+  <div class="modal-box" style="max-width:700px; width:100%; max-height:92vh; overflow-y:auto;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-lg text-on-surface" id="branchHistoryTitle">Historial — Sucursal</h3>
+      <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant" onclick="document.getElementById('modalBranchHistory').style.display='none'">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+    <div id="branchHistoryBody">
+      <div class="py-10 text-center text-on-surface-variant text-sm">Cargando historial...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: DETALLE DE VENTA
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalSale">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-bold text-lg text-on-surface" id="saleDetailTitle">Venta</h3>
+      <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors" onclick="closeModal('modalSale')">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+      </button>
+    </div>
+    <p class="text-xs text-on-surface-variant mb-4" id="saleDetailMeta"></p>
+    <div id="saleDetailBody" class="space-y-4"></div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<script src="{{ url_for('static', filename='js/ui.js') }}"></script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

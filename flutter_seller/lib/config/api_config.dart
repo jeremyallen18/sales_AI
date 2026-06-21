@@ -26,6 +26,31 @@ class ApiConfig {
   // Settings
   static String get settings => '$_baseUrl/api/settings/';
 
+  // Branches
+  static String get branches => '$_baseUrl/api/branches/';
+  static String branch(int id) => '$_baseUrl/api/branches/$id';
+  static String branchInventory(int branchId) =>
+      '$_baseUrl/api/branches/$branchId/inventory';
+  static String branchInventoryItem(int branchId, int productId) =>
+      '$_baseUrl/api/branches/$branchId/inventory/$productId';
+  static String branchAssign(int branchId) =>
+      '$_baseUrl/api/branches/$branchId/assign';
+  static String branchUnassign(int branchId, int sellerId) =>
+      '$_baseUrl/api/branches/$branchId/assign/$sellerId';
+  static String branchSellers(int branchId) =>
+      '$_baseUrl/api/branches/$branchId/sellers';
+  static String get sellers => '$_baseUrl/api/auth/sellers';
+
+  // Analytics con sucursal
+  static String analyticsSummaryBranch(int? branchId) => branchId != null
+      ? '$_baseUrl/api/analytics/summary?branch_id=$branchId'
+      : '$_baseUrl/api/analytics/summary';
+  static String insightsBranch(int? branchId) => branchId != null
+      ? '$_baseUrl/api/insights/?branch_id=$branchId'
+      : '$_baseUrl/api/insights/';
+  static String branchComparison() =>
+      '$_baseUrl/api/analytics/branch-comparison';
+
   static String productImage(String path) {
     if (path.isEmpty) return '';
     if (path.startsWith('http')) return path;

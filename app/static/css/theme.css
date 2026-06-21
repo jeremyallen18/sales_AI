@@ -37,6 +37,14 @@
   --color-toast-success-text:        #2E7D32;
   --color-toast-success-border:      #A5D6A7;
   --color-upload-hover-bg:           #fff5f3;
+  /* ─── Motion Tokens ─── */
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-micro:   100ms;
+  --dur-fast:    150ms;
+  --dur-ui:      200ms;
+  --dur-panel:   240ms;
 }
 
 .dark {
@@ -154,14 +162,277 @@
   color: #ffffff;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   D. Tokens "OXXO Refinado" — gradientes, glass, sombras,
+   skeletons, toasts y motion compartidos por todas las páginas
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --grad-brand:        linear-gradient(135deg, #e30613 0%, #b5000b 55%, #8f0009 100%);
+  --grad-brand-soft:   linear-gradient(135deg, rgba(227, 6, 19, 0.10) 0%, rgba(254, 212, 0, 0.10) 100%);
+  --grad-gold:         linear-gradient(135deg, #ffe14d 0%, #fed400 60%, #eac300 100%);
+  --glass-bg:          rgba(255, 255, 255, 0.72);
+  --glass-border:      rgba(255, 255, 255, 0.55);
+  --glass-blur:        14px;
+  --shadow-1:          0 1px 2px rgba(74, 28, 22, 0.06), 0 1px 3px rgba(74, 28, 22, 0.08);
+  --shadow-2:          0 2px 6px rgba(74, 28, 22, 0.07), 0 6px 16px rgba(74, 28, 22, 0.08);
+  --shadow-3:          0 6px 14px rgba(74, 28, 22, 0.10), 0 14px 32px rgba(74, 28, 22, 0.12);
+  --shadow-4:          0 12px 28px rgba(74, 28, 22, 0.14), 0 24px 56px rgba(74, 28, 22, 0.16);
+  --shadow-brand:      0 6px 18px rgba(181, 0, 11, 0.30);
+  --skeleton-base:     #efe9e7;
+  --skeleton-shine:    rgba(255, 255, 255, 0.75);
+  --color-toast-error-bg:     #fdecea;
+  --color-toast-error-text:   #93000a;
+  --color-toast-error-border: #f3b6b1;
+}
+
+.dark {
+  --grad-brand-soft:   linear-gradient(135deg, rgba(227, 6, 19, 0.16) 0%, rgba(254, 212, 0, 0.10) 100%);
+  --glass-bg:          rgba(28, 25, 23, 0.65);
+  --glass-border:      rgba(255, 255, 255, 0.08);
+  --shadow-1:          0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-2:          0 2px 6px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.45);
+  --shadow-3:          0 6px 14px rgba(0, 0, 0, 0.45), 0 14px 32px rgba(0, 0, 0, 0.5);
+  --shadow-4:          0 12px 28px rgba(0, 0, 0, 0.5), 0 24px 56px rgba(0, 0, 0, 0.55);
+  --shadow-brand:      0 6px 18px rgba(227, 6, 19, 0.35);
+  --skeleton-base:     #2a2623;
+  --skeleton-shine:    rgba(255, 255, 255, 0.06);
+  --color-toast-error-bg:     #2e1414;
+  --color-toast-error-text:   #ffb4ab;
+  --color-toast-error-border: #7a2020;
+}
+
+/* Glassmorphism — solo en chrome fijo (headers, navs, modals, toasts) */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border-color: var(--glass-border);
+}
+
+/* Tarjeta elevada con hover-lift */
+.card-elevated {
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--dur-ui) var(--ease-out),
+              transform var(--dur-ui) var(--ease-out);
+}
+.card-elevated:hover {
+  box-shadow: var(--shadow-3);
+  transform: translateY(-2px);
+}
+
+/* Tile de icono con gradiente de marca */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--grad-brand);
+  color: #ffffff;
+  box-shadow: var(--shadow-brand);
+  flex-shrink: 0;
+}
+.icon-tile--gold {
+  background: var(--grad-gold);
+  color: #6f5c00;
+  box-shadow: 0 6px 18px rgba(254, 212, 0, 0.35);
+}
+.icon-tile--neutral {
+  background: linear-gradient(135deg, #6b5a56 0%, #4a3c38 100%);
+  box-shadow: 0 6px 18px rgba(74, 60, 56, 0.3);
+}
+.icon-tile--warn {
+  background: linear-gradient(135deg, #ff9d4d 0%, #e36414 100%);
+  box-shadow: 0 6px 18px rgba(227, 100, 20, 0.35);
+}
+
+/* ─── Skeletons ─── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  position: relative;
+  border-radius: 10px;
+  background: linear-gradient(90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  pointer-events: none;
+}
+.skeleton-text  { height: 0.9em; width: 70%; }
+.skeleton-card  { height: 180px; width: 100%; border-radius: 16px; }
+.skeleton-row   { height: 44px; width: 100%; border-radius: 8px; margin-bottom: 8px; }
+.skeleton-stat  { height: 2rem; width: 5.5rem; }
+
+/* ─── Animaciones de entrada (stagger con --stagger-i) ─── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.anim-fade-up {
+  animation: fade-up 0.45s var(--ease-out) both;
+  animation-delay: calc(var(--stagger-i, 0) * 50ms);
+}
+.anim-scale-in {
+  animation: scale-in 0.3s var(--ease-out) both;
+  animation-delay: calc(var(--stagger-i, 0) * 50ms);
+}
+
+/* ─── Toasts apilados (usado por UI nuevo en app.js / cliente.js) ─── */
+#toastStack,
+#toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: min(360px, calc(100vw - 32px));
+}
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  box-shadow: var(--shadow-3);
+  color: var(--color-on-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  animation: toast-in 0.35s var(--ease-spring) both;
+}
+.toast-item.toast-leaving {
+  animation: toast-out 0.25s var(--ease-out) both;
+}
+.toast-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--toast-accent, #2E7D32);
+}
+.toast-item .toast-icon {
+  font-size: 20px;
+  color: var(--toast-accent, #2E7D32);
+  flex-shrink: 0;
+}
+.toast-item .toast-progress {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 3px;
+  background: var(--toast-accent, #2E7D32);
+  opacity: 0.45;
+  animation: toast-progress var(--toast-dur, 2600ms) linear forwards;
+}
+.toast-item.toast-success { --toast-accent: #2E7D32; }
+.toast-item.toast-error   { --toast-accent: #e30613; }
+.toast-item.toast-warn    { --toast-accent: #c98f00; }
+.dark .toast-item.toast-success { --toast-accent: #86efac; }
+.dark .toast-item.toast-error   { --toast-accent: #ffb4ab; }
+.dark .toast-item.toast-warn    { --toast-accent: #ffe174; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(24px); }
+}
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ─── Estado vacío ─── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 40px 20px;
+  color: var(--color-on-surface-variant);
+  animation: fade-up 0.4s var(--ease-out) both;
+}
+.empty-state .empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--grad-brand-soft);
+  margin-bottom: 6px;
+}
+.empty-state .empty-icon .material-symbols-outlined {
+  font-size: 32px;
+  color: var(--color-primary);
+}
+.dark .empty-state .empty-icon .material-symbols-outlined { color: #ff8a80; }
+.empty-state .empty-title {
+  font-weight: 700;
+  color: var(--color-on-surface);
+  font-size: 0.95rem;
+}
+.empty-state .empty-hint { font-size: 0.8rem; }
+
+/* ─── Accesibilidad: sin movimiento ─── */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up,
+  .anim-scale-in,
+  .skeleton,
+  .toast-item,
+  .empty-state {
+    animation: none !important;
+  }
+  .card-elevated,
+  .card-elevated:hover {
+    transform: none;
+  }
+  /* Chatbot: mensajes, chips, typing y botón enviar aparecen sin animación */
+  .msg,
+  .msg-user,
+  .msg-ai,
+  .msg-leaving,
+  .msg-streaming::after,
+  .chat-chip,
+  #chat-messages > div,
+  #chat-suggestions > button,
+  #btnSend.is-sending .material-symbols-outlined,
+  #chat-send-btn.is-sending .material-symbols-outlined {
+    animation: none !important;
+  }
+  #chat-panel,
+  #chat-fab-icon,
+  .chat-chip,
+  #chat-suggestions > button {
+    transition-duration: 1ms !important;
+  }
+}
+
 /* ─── C. Transición suave al hacer toggle ─── */
 .theme-transitioning,
 .theme-transitioning *,
 .theme-transitioning *::before,
 .theme-transitioning *::after {
   transition:
-    background-color 0.2s ease,
-    color 0.15s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease !important;
+    background-color 0.2s var(--ease-out),
+    color 0.15s var(--ease-out),
+    border-color 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out) !important;
 }

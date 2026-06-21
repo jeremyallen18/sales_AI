@@ -1,21 +1,56 @@
 /* ─── Panel visibility ─── */
 .panel { display: none; }
-.panel.active { display: block; }
-#panel-ventas.active { display: flex; flex-direction: row; }
+.panel.active {
+  display: block;
+  animation: panelIn var(--dur-panel) var(--ease-out) both;
+}
+#panel-ventas.active  { display: flex; flex-direction: row; }
 #panel-chatbot.active { display: flex; flex-direction: column; }
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
 
 /* ─── Nav active state (set by JS) ─── */
+.nav-btn { position: relative; }
 .nav-btn.nav-item-active {
-  background-color: var(--color-secondary-container) !important;
-  color: var(--color-on-secondary-container) !important;
+  background: var(--grad-brand-soft) !important;
+  color: var(--color-primary) !important;
   font-weight: 700;
+}
+.dark .nav-btn.nav-item-active { color: #ff8a80 !important; }
+.nav-btn.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--grad-gold);
 }
 .nav-btn.nav-item-active .material-symbols-outlined {
   font-variation-settings: 'FILL' 1;
 }
 
+/* ─── Botón CTA con gradiente de marca ─── */
+.cta-ia {
+  background: var(--grad-brand);
+  box-shadow: var(--shadow-brand);
+  transition:
+    filter     var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform  var(--dur-micro) var(--ease-out);
+}
+.cta-ia:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 10px 26px rgba(181, 0, 11, 0.4);
+}
+.cta-ia:active:not(:disabled) { transform: scale(0.98); }
+
 /* ─── Modal ─── */
-#modalProduct {
+#modalProduct,
+#modalSale {
   display: none;
   position: fixed;
   inset: 0;
@@ -25,10 +60,46 @@
   justify-content: center;
   padding: 24px;
 }
-#modalProduct.open { display: flex; }
+#modalProduct.open,
+#modalSale.open {
+  display: flex;
+  animation: overlayIn var(--dur-ui) var(--ease-out) both;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* Filas de detalle de venta */
+.sale-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-surface-container);
+  font-size: 13px;
+}
+.sale-item-row:last-child { border-bottom: none; }
+.sale-item-qty {
+  min-width: 34px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--grad-brand-soft);
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dark .sale-item-qty { color: #ff8a80; }
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 .modal-box {
   background: var(--color-surface-container-lowest);
-  border-radius: 12px;
+  border-radius: 18px;
   padding: 24px;
   width: 100%;
   max-width: 480px;
@@ -36,6 +107,11 @@
   overflow-y: auto;
   position: relative;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: modalBoxIn var(--dur-ui) var(--ease-out) both;
+}
+@keyframes modalBoxIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
 }
 .modal-input {
   width: 100%;
@@ -46,60 +122,61 @@
   font-size: 14px;
   color: var(--color-on-surface);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow   var(--dur-fast) var(--ease-out);
 }
 .modal-input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(181, 0, 11, 0.15);
 }
 
-/* ─── Toast ─── */
-#toast {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-  max-width: 340px;
-}
-.toast-item {
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  pointer-events: auto;
-  animation: toastIn 0.3s ease;
-  line-height: 1.4;
-}
-.toast-success {
-  background: var(--color-toast-success-bg);
-  color: var(--color-toast-success-text);
-  border: 1px solid var(--color-toast-success-border);
-}
-.toast-error {
-  background: var(--color-error-container);
-  color: var(--color-on-error-container);
-  border: 1px solid var(--color-primary-container);
-}
-@keyframes toastIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+/* ─── Toast ───
+   Los estilos de #toast (stack) y .toast-item viven en theme.css
+   (sección D) y son compartidos con la tienda cliente. */
 
 /* ─── POS: Product cards (JS-generated) ─── */
 .prod-card {
   background: var(--color-surface-container-lowest);
   border: 1px solid var(--color-surface-container-highest);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px;
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+  transition:
+    box-shadow   var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform    var(--dur-fast) var(--ease-out);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.prod-card:hover { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12); transform: translateY(-2px); }
+@media (hover: hover) and (pointer: fine) {
+  .prod-card:hover {
+    box-shadow: var(--shadow-3);
+    border-color: var(--color-outline-variant);
+    transform: translateY(-3px);
+  }
+  .prod-card:hover img { transform: scale(1.06); }
+}
+.prod-card img { transition: transform var(--dur-ui) var(--ease-out); }
+.prod-card:active { transform: scale(0.98); }
 .prod-card.out-of-stock { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.prod-discount {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--grad-gold);
+  color: #6f5c00;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(254, 212, 0, 0.45);
+  z-index: 1;
+}
 .prod-img {
   display: flex;
   align-items: center;
@@ -136,9 +213,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform        var(--dur-micro) var(--ease-out);
 }
-.qty-btn:hover { background: var(--color-surface-container-highest); }
+.qty-btn:hover  { background: var(--color-surface-container-highest); }
+.qty-btn:active { transform: scale(0.95); }
 .ci-price { font-size: 13px; font-weight: 700; color: var(--color-primary); white-space: nowrap; flex-shrink: 0; }
 
 /* ─── Tags / Badges (JS-generated) ─── */
@@ -146,6 +226,7 @@
 .tag-green  { background: var(--color-toast-success-bg); color: var(--color-toast-success-text); }
 .tag-yellow { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
 .tag-red    { background: var(--color-error-container); color: var(--color-on-error-container); }
+.tag-neutral { background: var(--color-surface-container); color: var(--color-on-surface-variant); }
 
 /* ─── Table buttons (JS-generated) ─── */
 .btn {
@@ -156,10 +237,14 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform        var(--dur-micro) var(--ease-out),
+    box-shadow       var(--dur-fast) var(--ease-out);
   border: none;
   padding: 6px 12px;
 }
+.btn:active { transform: scale(0.97); }
 .btn-ghost       { background: var(--color-surface-container); color: var(--color-on-surface); }
 .btn-ghost:hover { background: var(--color-surface-container-highest); }
 .btn-danger       { background: var(--color-error-container); color: var(--color-on-error-container); }
@@ -183,10 +268,25 @@
 
 /* ─── Chat messages (JS-generated) ─── */
 #chatMessages { display: flex; flex-direction: column; gap: 12px; }
-.msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; word-break: break-word; }
+.msg {
+  max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; word-break: break-word;
+  animation: msgIn var(--dur-ui) var(--ease-out) both;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+@keyframes msgInUser {
+  from { opacity: 0; transform: translateX(16px) translateY(4px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)    translateY(0)   scale(1);    }
+}
+@keyframes msgInAi {
+  from { opacity: 0; transform: translateX(-16px) translateY(4px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)     translateY(0)   scale(1);    }
+}
 /* Burbuja usuario: siempre rojo OXXO (identidad de marca) */
-.msg-user { align-self: flex-end; background: #b5000b; color: #fff; border-radius: 14px 14px 2px 14px; }
-.msg-ai   { align-self: flex-start; background: var(--color-surface-container); color: var(--color-on-surface); border-radius: 14px 14px 14px 2px; }
+.msg-user { align-self: flex-end; background: #b5000b; color: #fff; border-radius: 14px 14px 2px 14px; animation: msgInUser var(--dur-panel) var(--ease-spring) both; }
+.msg-ai   { align-self: flex-start; background: var(--color-surface-container); color: var(--color-on-surface); border-radius: 14px 14px 14px 2px; animation: msgInAi var(--dur-panel) var(--ease-spring) both; }
 
 /* Markdown dentro de mensajes IA */
 .msg-ai p { margin: 0 0 8px; }
@@ -203,6 +303,58 @@
 .dot:nth-child(3) { animation-delay: 0.4s; }
 @keyframes dotBounce { 0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; } 40% { transform: scale(1.1); opacity: 1; } }
 
+/* Salida suave del typing indicator */
+.msg-leaving { animation: msgOut var(--dur-fast) var(--ease-out) both; }
+@keyframes msgOut {
+  from { opacity: 1; transform: translateY(0)    scale(1);    }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.95); }
+}
+
+/* Cursor parpadeante durante streaming */
+.msg-streaming::after {
+  content: '▍';
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--color-primary);
+  animation: cursorBlink 0.9s steps(2, start) infinite;
+}
+@keyframes cursorBlink { 50% { opacity: 0; } }
+
+/* ─── Micro-interacciones del chat: botón enviar, input y chips ─── */
+#btnSend { transition: transform var(--dur-micro) var(--ease-out), background-color var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
+#btnSend:active { transform: scale(0.88); }
+#btnSend:disabled { opacity: 0.6; cursor: default; }
+#btnSend.is-sending .material-symbols-outlined { animation: sendFly 0.45s var(--ease-spring) both; }
+@keyframes sendFly {
+  0%   { transform: translate(0, 0)        rotate(0deg);   opacity: 1; }
+  45%  { transform: translate(14px, -14px) rotate(-12deg); opacity: 0; }
+  50%  { transform: translate(-14px, 14px) rotate(-12deg); opacity: 0; }
+  100% { transform: translate(0, 0)        rotate(0deg);   opacity: 1; }
+}
+
+.chat-chip { animation: chipIn var(--dur-panel) var(--ease-spring) both; transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.chat-chip:nth-child(1) { animation-delay: 0.05s; }
+.chat-chip:nth-child(2) { animation-delay: 0.12s; }
+.chat-chip:nth-child(3) { animation-delay: 0.19s; }
+.chat-chip:nth-child(4) { animation-delay: 0.26s; }
+.chat-chip:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); }
+.chat-chip:active { transform: translateY(0) scale(0.96); }
+@keyframes chipIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* ─── Tablas: hover en filas ─── */
+table tbody tr {
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+table tbody tr:hover {
+  background-color: var(--color-surface-container-low);
+}
+table tbody td {
+  padding: 12px 20px;
+}
+
 /* ─── Scrollbar ─── */
 .scrollbar-thin::-webkit-scrollbar { width: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
@@ -217,7 +369,9 @@
   padding: 20px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color     var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 .upload-area:hover {
   border-color: var(--color-primary);

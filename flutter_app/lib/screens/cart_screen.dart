@@ -19,7 +19,6 @@ class CartScreen extends StatelessWidget {
     final items = cart.items.values.toList();
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Row(
@@ -84,11 +83,9 @@ class CartScreen extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: ctx,
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text('¿Vaciar carrito?',
-            style: TextStyle(color: AppColors.onSurface)),
-        content: const Text('Se eliminarán todos los productos.',
-            style: TextStyle(color: AppColors.onSurfaceVariant)),
+        backgroundColor: Theme.of(ctx).colorScheme.surfaceContainer,
+        title: const Text('¿Vaciar carrito?'),
+        content: const Text('Se eliminarán todos los productos.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(_, false),
@@ -148,12 +145,13 @@ class _CartTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.read<CartProvider>();
     final url = ApiConfig.productImage(item.product.imageUrl);
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: AppColors.outline.withValues(alpha: 0.5), width: 1),
@@ -173,7 +171,7 @@ class _CartTile extends StatelessWidget {
             child: Container(
               width: 72,
               height: 72,
-              color: AppColors.surfaceContainerLow,
+              color: cs.surfaceContainerLow,
               child: url.isEmpty
                   ? const Icon(Icons.inventory_2_outlined,
                       color: AppColors.onSurfaceVariant)
@@ -194,8 +192,8 @@ class _CartTile extends StatelessWidget {
               children: [
                 Text(
                   item.product.name,
-                  style: const TextStyle(
-                      color: AppColors.onSurface,
+                  style: TextStyle(
+                      color: cs.onSurface,
                       fontWeight: FontWeight.w600,
                       fontSize: 13),
                   maxLines: 2,
@@ -258,12 +256,13 @@ class _QtyPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 32,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: cs.outline),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -273,8 +272,8 @@ class _QtyPill extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '$quantity',
-              style: const TextStyle(
-                  color: AppColors.onSurface,
+              style: TextStyle(
+                  color: cs.onSurface,
                   fontWeight: FontWeight.w600,
                   fontSize: 13),
             ),
@@ -311,10 +310,11 @@ class _ForgotSection extends StatelessWidget {
 
     if (suggestions.isEmpty) return const SizedBox.shrink();
 
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -359,13 +359,14 @@ class _SuggestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.read<CartProvider>();
     final url = ApiConfig.productImage(product.imageUrl);
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       width: 120,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: cs.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,7 +376,7 @@ class _SuggestionCard extends StatelessWidget {
             child: Container(
               height: 52,
               width: double.infinity,
-              color: AppColors.surfaceContainerLow,
+              color: cs.surfaceContainerLow,
               child: url.isEmpty
                   ? const Icon(Icons.inventory_2_outlined,
                       color: AppColors.onSurfaceVariant, size: 24)
@@ -395,8 +396,8 @@ class _SuggestionCard extends StatelessWidget {
               product.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: AppColors.onSurface,
+              style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 10,
                   fontWeight: FontWeight.w500),
             ),
@@ -438,11 +439,12 @@ class _OrderSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        border: Border(top: BorderSide(color: AppColors.outline)),
+        color: cs.surfaceContainerLow,
+        border: Border(top: BorderSide(color: cs.outline)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),

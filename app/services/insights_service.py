@@ -51,12 +51,12 @@ USER_MESSAGE = (
 )
 
 
-def get_business_insights() -> dict:
+def get_business_insights(branch_id=None) -> dict:
     """Devuelve {'insights': [...], 'fuente': 'ia'|'reglas'}.
 
     Intenta generar con IA; ante cualquier fallo cae al generador por reglas.
     """
-    summary = get_summary_for_ai()
+    summary = get_summary_for_ai(branch_id=branch_id)
     try:
         data_str = wrap_business_data(json.dumps(summary, ensure_ascii=False, indent=2))
         system_prompt = SYSTEM_TEMPLATE.format(guard=DATA_GUARD, data=data_str)

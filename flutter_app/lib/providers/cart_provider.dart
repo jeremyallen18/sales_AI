@@ -53,7 +53,18 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Map<String, dynamic>> checkout(String clientName, String paymentMethod) async {
+  int? _activeBranchId;
+  int? get activeBranchId => _activeBranchId;
+
+  void setBranch(int? branchId) {
+    _activeBranchId = branchId;
+  }
+
+  Future<Map<String, dynamic>> checkout(
+    String clientName,
+    String paymentMethod, {
+    String? appToken,
+  }) async {
     final saleItems = _items.values
         .map((i) => {'product_id': i.product.id, 'quantity': i.quantity})
         .toList();
@@ -62,6 +73,8 @@ class CartProvider with ChangeNotifier {
       items: saleItems,
       clientName: clientName,
       paymentMethod: paymentMethod,
+      appToken: appToken,
+      branchId: _activeBranchId,
     );
     clear();
     return result;

@@ -29,7 +29,7 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
-        'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'app.db')
+        'mysql+pymysql://root:@localhost:3306/ventaia_db'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -40,6 +40,18 @@ class Config:
 
     # Unidades mínimas antes de marcar producto como bajo stock
     LOW_STOCK_THRESHOLD = int(os.environ.get('LOW_STOCK_THRESHOLD', '10'))
+
+    # Firebase
+    FIREBASE_CREDENTIALS_PATH = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', 'firebase-service-account.json')
+    APP_TOKEN_SECRET   = os.environ.get('APP_TOKEN_SECRET', SECRET_KEY)
+    APP_TOKEN_TTL_HOURS = int(os.environ.get('APP_TOKEN_TTL_HOURS', '720'))  # 30 days
+
+    # Google OAuth — se obtienen de Google Cloud Console → APIs & Services → Credentials
+    # → tu OAuth 2.0 Client ID (tipo "Aplicación web")
+    # Después de agregar GOOGLE_CLIENT_SECRET, registra en "URIs de redireccionamiento autorizadas":
+    #   http://localhost:5000/auth/google/callback
+    GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
     @classmethod
     def validate(cls):

@@ -30,7 +30,10 @@ class ProductsProvider with ChangeNotifier {
     return cats;
   }
 
+  int? _currentBranchId;
+
   Future<void> load() async {
+    _currentBranchId = null;
     _loading = true;
     _error = null;
     notifyListeners();
@@ -44,9 +47,28 @@ class ProductsProvider with ChangeNotifier {
     }
   }
 
+  Future<void> loadForBranch(int branchId) async {
+    _currentBranchId = branchId;
+    _loading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _all = await ApiService.fetchBranchInventory(branchId);
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> addProduct(Map<String, dynamic> data) async {
     await ApiService.createProduct(data);
-    await load();
+    if (_currentBranchId != null) {
+      await loadForBranch(_currentBranchId!);
+    } else {
+      await load();
+    }
   }
 
   Future<void> editProduct(int id, Map<String, dynamic> data) async {

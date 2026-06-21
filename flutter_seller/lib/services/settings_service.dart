@@ -2,9 +2,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class SettingsService {
-  static const String _keyUrl = 'server_base_url';
-  static const String _keyUser = 'auth_user';
+  static const String _keyUrl   = 'server_base_url';
+  static const String _keyUser  = 'auth_user';
   static const String _keyToken = 'auth_token';
+  static const String _keyRole  = 'auth_role';
   static const String defaultBaseUrl = 'http://128.4.1.148:5000';
 
   static Future<void> init() async {
@@ -23,10 +24,12 @@ class SettingsService {
     await prefs.setString(_keyUrl, url);
   }
 
-  static Future<void> saveAuth(String user, String token) async {
+  static Future<void> saveAuth(String user, String token,
+      {String role = 'seller'}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyUser, user);
     await prefs.setString(_keyToken, token);
+    await prefs.setString(_keyRole, role);
   }
 
   static Future<Map<String, String?>> getSavedAuth() async {
@@ -34,6 +37,7 @@ class SettingsService {
     return {
       'user': prefs.getString(_keyUser),
       'token': prefs.getString(_keyToken),
+      'role': prefs.getString(_keyRole),
     };
   }
 
@@ -41,6 +45,7 @@ class SettingsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyUser);
     await prefs.remove(_keyToken);
+    await prefs.remove(_keyRole);
   }
 
   static Future<void> resetToDefault() => saveBaseUrl(defaultBaseUrl);
