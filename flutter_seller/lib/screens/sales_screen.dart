@@ -24,6 +24,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final provider = context.watch<SalesProvider>();
     final fmt = NumberFormat.currency(locale: 'es_MX', symbol: '\$');
     final dateFmt = DateFormat('dd/MM/yyyy HH:mm');
+    final cs = Theme.of(context).colorScheme;
 
     if (provider.loading) {
       return const Center(child: CircularProgressIndicator());
@@ -34,10 +35,10 @@ class _SalesScreenState extends State<SalesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, size: 48, color: AppColors.textSec),
+            Icon(Icons.cloud_off, size: 48, color: cs.onSurface.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
             Text(provider.error!,
-                style: const TextStyle(color: AppColors.textSec)),
+                style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: provider.load,
@@ -50,14 +51,14 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     if (provider.sales.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long, size: 64, color: AppColors.textSec),
-            SizedBox(height: 12),
+            Icon(Icons.receipt_long, size: 64, color: cs.onSurface.withValues(alpha: 0.5)),
+            const SizedBox(height: 12),
             Text('No hay ventas registradas',
-                style: TextStyle(color: AppColors.textSec, fontSize: 16)),
+                style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 16)),
           ],
         ),
       );
@@ -65,7 +66,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     return RefreshIndicator(
       onRefresh: provider.load,
-      color: AppColors.accent,
+      color: cs.primary,
       child: Column(
         children: [
           // Summary bar
@@ -73,9 +74,9 @@ class _SalesScreenState extends State<SalesScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.navyCard,
+              color: cs.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.divider),
+              border: Border.all(color: cs.outline),
             ),
             child: Row(
               children: [
@@ -83,12 +84,12 @@ class _SalesScreenState extends State<SalesScreen> {
                   label: 'Ventas Hoy',
                   value: '${provider.todaySalesCount}',
                   icon: Icons.receipt,
-                  color: AppColors.accent,
+                  color: cs.primary,
                 ),
                 Container(
                     width: 1,
                     height: 36,
-                    color: AppColors.divider,
+                    color: cs.outline,
                     margin: const EdgeInsets.symmetric(horizontal: 16)),
                 _MiniStat(
                   label: 'Ingresos Hoy',
@@ -142,8 +143,7 @@ class _MiniStat extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style:
-                        const TextStyle(color: AppColors.textSec, fontSize: 11)),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 11)),
                 FittedBox(
                   child: Text(value,
                       style: TextStyle(
@@ -170,30 +170,31 @@ class _SaleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.navyCard,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: cs.outline),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 14),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-        iconColor: AppColors.textSec,
-        collapsedIconColor: AppColors.textSec,
+        iconColor: cs.onSurface.withValues(alpha: 0.5),
+        collapsedIconColor: cs.onSurface.withValues(alpha: 0.5),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.15),
+                color: cs.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 '#${sale.id.toString().padLeft(4, '0')}',
-                style: const TextStyle(
-                    color: AppColors.accent,
+                style: TextStyle(
+                    color: cs.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 12),
               ),
@@ -202,7 +203,7 @@ class _SaleTile extends StatelessWidget {
             Expanded(
               child: Text(
                 sale.clientName.isNotEmpty ? sale.clientName : 'Sin nombre',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: cs.onSurface, fontSize: 14),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -216,26 +217,26 @@ class _SaleTile extends StatelessWidget {
         ),
         subtitle: Text(
           dateFmt.format(sale.createdAt.toLocal()),
-          style: const TextStyle(color: AppColors.textSec, fontSize: 11),
+          style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 11),
         ),
         children: sale.items.map((item) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(
               children: [
-                const Icon(Icons.circle, size: 6, color: AppColors.textSec),
+                Icon(Icons.circle, size: 6, color: cs.onSurface.withValues(alpha: 0.4)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(item.productName,
-                      style: const TextStyle(color: Colors.white, fontSize: 13)),
+                      style: TextStyle(color: cs.onSurface, fontSize: 13)),
                 ),
                 Text('x${item.quantity}',
                     style:
-                        const TextStyle(color: AppColors.textSec, fontSize: 13)),
+                        TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 13)),
                 const SizedBox(width: 12),
                 Text(fmt.format(item.subtotal),
-                    style: const TextStyle(
-                        color: AppColors.accent, fontSize: 13)),
+                    style: TextStyle(
+                        color: cs.primary, fontSize: 13)),
               ],
             ),
           );

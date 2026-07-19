@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/cart_provider.dart';
+import '../providers/customer_auth_provider.dart';
+import '../providers/branch_provider.dart';
 import 'order_success_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -22,6 +24,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _cvvCtrl = TextEditingController();
   String _selectedMethod = 'efectivo';
   bool _processing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<CustomerAuthProvider>();
+      if (auth.isLoggedIn && _nameCtrl.text.isEmpty) {
+        _nameCtrl.text = auth.displayName;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -64,8 +77,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     setState(() => _processing = true);
     try {
-      final result =
-          await cart.checkout(_nameCtrl.text.trim(), _selectedMethod);
+      final authProv = context.read<CustomerAuthProvider>();
+      final branchProv = context.read<BranchProvider>();
+      final result = await cart.checkout(
+        _nameCtrl.text.trim(),
+        _selectedMethod,
+        appToken: authProv.appToken,
+      );
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -76,6 +94,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 _selectedMethod == 'efectivo' && _cashCtrl.text.isNotEmpty
                     ? _cashReceived
                     : null,
+            branchId: branchProv.selectedBranchId,
+            branchName: branchProv.selectedBranch?.name,
+            appToken: authProv.isLoggedIn ? authProv.appToken : null,
           ),
         ),
       );
@@ -97,8 +118,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = context.watch<CartProvider>();
     final items = cart.items.values.toList();
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(title: const Text('Finalizar compra')),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -109,9 +130,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cs.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.outline),
+              border: Border.all(color: cs.outline),
             ),
             child: Column(
               children: [
@@ -122,8 +143,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Expanded(
                             child: Text(
                               '${item.product.name} × ${item.quantity}',
-                              style: const TextStyle(
-                                  color: AppColors.onSurface, fontSize: 13),
+                              style: TextStyle(
+                                  color: cs.onSurface, fontSize: 13),
                             ),
                           ),
                           Column(
@@ -132,8 +153,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               if (item.product.discountPct > 0)
                                 Text(
                                   '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      color: AppColors.onSurfaceVariant,
+                                  style: TextStyle(
+                                      color: cs.onSurfaceVariant,
                                       fontSize: 11,
                                       decoration: TextDecoration.lineThrough),
                                 ),
@@ -171,21 +192,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                     ),
                   ),
-                const Divider(color: AppColors.outline),
+                Divider(color: cs.outline),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Total',
                       style: GoogleFonts.montserrat(
-                          color: AppColors.onSurface,
+                          color: cs.onSurface,
                           fontSize: 15,
                           fontWeight: FontWeight.w700),
                     ),
                     Text(
                       '\$${cart.total.toStringAsFixed(2)}',
                       style: GoogleFonts.montserrat(
-                          color: AppColors.primary,
+                          color: cs.primary,
                           fontSize: 18,
                           fontWeight: FontWeight.w700),
                     ),
@@ -195,13 +216,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('IVA incluido (16%)',
+                    Text('IVA incluido (16%)',
                         style: TextStyle(
-                            color: AppColors.onSurfaceVariant, fontSize: 11)),
+                            color: cs.onSurfaceVariant, fontSize: 11)),
                     Text(
                       '\$${cart.taxAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          color: AppColors.onSurfaceVariant, fontSize: 11),
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 11),
                     ),
                   ],
                 ),
@@ -216,12 +237,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           TextField(
             controller: _nameCtrl,
             textCapitalization: TextCapitalization.words,
-            style: const TextStyle(color: AppColors.onSurface),
-            decoration: const InputDecoration(
+            style: TextStyle(color: cs.onSurface),
+            decoration: InputDecoration(
               labelText: 'Tu nombre (opcional)',
               hintText: 'Ej: María García',
               prefixIcon:
-                  Icon(Icons.person_outline, color: AppColors.onSurfaceVariant),
+                  Icon(Icons.person_outline, color: cs.onSurfaceVariant),
             ),
           ),
           const SizedBox(height: 24),
@@ -262,12 +283,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))
               ],
-              style: const TextStyle(color: AppColors.onSurface),
-              decoration: const InputDecoration(
+              style: TextStyle(color: cs.onSurface),
+              decoration: InputDecoration(
                 labelText: 'Monto recibido (opcional)',
                 hintText: 'Ej: 100.00',
                 prefixIcon: Icon(Icons.payments_outlined,
-                    color: AppColors.onSurfaceVariant),
+                    color: cs.onSurfaceVariant),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -366,6 +387,7 @@ class _PaymentMethodSelector extends StatelessWidget {
       ('transferencia', Icons.account_balance_outlined, 'Transferencia'),
     ];
 
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: methods.map((m) {
         final isSelected = selected == m.$1;
@@ -379,11 +401,11 @@ class _PaymentMethodSelector extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.primaryContainer
-                      : AppColors.surfaceContainerLow,
+                      ? cs.primaryContainer
+                      : cs.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.outline,
+                    color: isSelected ? cs.primary : cs.outline,
                     width: isSelected ? 2 : 1,
                   ),
                 ),
@@ -392,16 +414,16 @@ class _PaymentMethodSelector extends StatelessWidget {
                   children: [
                     Icon(m.$2,
                         color: isSelected
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
+                            ? cs.primary
+                            : cs.onSurfaceVariant,
                         size: 22),
                     const SizedBox(height: 4),
                     Text(
                       m.$3,
                       style: TextStyle(
                         color: isSelected
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
+                            ? cs.primary
+                            : cs.onSurfaceVariant,
                         fontSize: 11,
                         fontWeight: isSelected
                             ? FontWeight.bold

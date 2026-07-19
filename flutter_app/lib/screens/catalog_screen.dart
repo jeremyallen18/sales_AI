@@ -7,6 +7,8 @@ import '../main.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/products_provider.dart';
+import '../widgets/star_rating.dart';
+import 'reviews_screen.dart';
 import 'settings_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -24,7 +26,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductsProvider>().load();
+      final pp = context.read<ProductsProvider>();
+      pp.load();
+      pp.loadRatings();
     });
   }
 
@@ -33,7 +37,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
     final products = context.watch<ProductsProvider>();
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Tienda'),
@@ -330,12 +333,18 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final inCart = cart.items.containsKey(product.id);
+    final ratings = context.watch<ProductsProvider>().ratings;
+    final rData = ratings[product.id.toString()];
+    final avgRating = (rData?['avg_rating'] as num?)?.toDouble() ?? 0.0;
+    final totalReviews = (rData?['total_reviews'] as num?)?.toInt() ?? 0;
+
+    final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => _handleTap(context, cart, inCart),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cs.surfaceContainer,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
@@ -357,7 +366,7 @@ class _ProductCard extends StatelessWidget {
                         const BorderRadius.vertical(top: Radius.circular(8)),
                     child: Container(
                       width: double.infinity,
-                      color: AppColors.surfaceContainerLow,
+                      color: cs.surfaceContainerLow,
                       child: _ProductImage(imageUrl: product.imageUrl),
                     ),
                   ),
@@ -408,16 +417,44 @@ class _ProductCard extends StatelessWidget {
             ),
             // ── Nombre ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 2),
               child: Text(
                 product.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.onSurface,
+                  color: cs.onSurface,
                   height: 1.3,
                 ),
+              ),
+            ),
+            // ── Rating ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReviewsScreen(
+                      productId: product.id,
+                      entityName: product.name,
+                    ),
+                  ),
+                ),
+                child: avgRating > 0
+                    ? StarRating(
+                        rating: avgRating,
+                        count: totalReviews,
+                        starSize: 11,
+                      )
+                    : Text(
+                        'Ver reseñas',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: cs.primary,
+                        ),
+                      ),
               ),
             ),
             // ── Precio + botón ──
@@ -498,7 +535,7 @@ class _ProductCard extends StatelessWidget {
     } else {
       showModalBottomSheet(
         context: context,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -547,6 +584,7 @@ class _CartQuickSheet extends StatelessWidget {
     final cart = context.watch<CartProvider>();
     final item = cart.items[product.id];
     final qty = item?.quantity ?? 0;
+    final cs = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -557,7 +595,7 @@ class _CartQuickSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.outline,
+              color: cs.outline,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -567,15 +605,15 @@ class _CartQuickSheet extends StatelessWidget {
             style: GoogleFonts.montserrat(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: cs.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           if (product.discountPct > 0) ...[
             Text(
               '\$${product.price.toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: AppColors.onSurfaceVariant,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
                 fontSize: 12,
                 decoration: TextDecoration.lineThrough,
               ),
@@ -588,8 +626,8 @@ class _CartQuickSheet extends StatelessWidget {
           ] else
             Text(
               '\$${product.price.toStringAsFixed(2)}',
-              style: const TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: cs.primary, fontWeight: FontWeight.w600),
             ),
           const SizedBox(height: 20),
           Row(
@@ -606,7 +644,7 @@ class _CartQuickSheet extends StatelessWidget {
                   style: GoogleFonts.montserrat(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: cs.onSurface,
                   ),
                 ),
               ),

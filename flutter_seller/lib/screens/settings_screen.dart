@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final cs = Theme.of(context).colorScheme;
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -38,15 +40,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.navyCard,
+            color: cs.surfaceContainer,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(color: Theme.of(context).dividerTheme.color ?? cs.outline),
           ),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: AppColors.accent,
+                backgroundColor: cs.primary,
                 child: Text(
                   auth.user.isNotEmpty ? auth.user[0].toUpperCase() : 'V',
                   style: const TextStyle(
@@ -62,19 +64,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       auth.user,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 18,
                           fontWeight: FontWeight.bold),
                     ),
-                    const Text('Vendedor',
-                        style:
-                            TextStyle(color: AppColors.textSec, fontSize: 14)),
+                    Text('Vendedor',
+                        style: TextStyle(
+                            color: cs.onSurface.withValues(alpha: 0.6),
+                            fontSize: 14)),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.logout, color: AppColors.danger),
+                icon: Icon(Icons.logout, color: AppColors.danger),
                 onPressed: () => auth.logout(),
                 tooltip: 'Cerrar sesión',
               ),
@@ -84,10 +87,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         const SizedBox(height: 24),
 
+        // ── Toggle de tema ──
+        Consumer<ThemeProvider>(
+          builder: (context, theme, _) => Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainer,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: Theme.of(context).dividerTheme.color ?? cs.outline),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  theme.isDark ? Icons.dark_mode : Icons.light_mode,
+                  color: cs.primary,
+                  size: 22,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    theme.isDark ? 'Modo oscuro' : 'Modo claro',
+                    style: TextStyle(
+                      color: cs.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                Switch.adaptive(
+                  value: theme.isDark,
+                  activeColor: cs.primary,
+                  onChanged: (_) => theme.toggle(),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
         // Server URL
-        const Text('Servidor',
+        Text('Servidor',
             style: TextStyle(
-                color: Colors.white,
+                color: cs.onSurface,
                 fontWeight: FontWeight.bold,
                 fontSize: 16)),
         const SizedBox(height: 8),
@@ -95,9 +139,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           controller: _urlCtrl,
           decoration: const InputDecoration(
             labelText: 'URL del servidor',
-            prefixIcon: Icon(Icons.dns_outlined, color: AppColors.textSec),
+            prefixIcon: Icon(Icons.dns_outlined),
           ),
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: cs.onSurface),
         ),
         const SizedBox(height: 12),
         Row(
@@ -121,7 +165,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() {});
               },
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.divider),
+                side: BorderSide(
+                    color: Theme.of(context).dividerTheme.color ?? cs.outline),
               ),
               child: const Text('RESET'),
             ),
@@ -134,22 +179,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.navyCard,
+            color: cs.surfaceContainer,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(
+                color: Theme.of(context).dividerTheme.color ?? cs.outline),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Sales AI — Seller',
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
+                      color: cs.onSurface, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
               Text('Versión 1.0.0',
-                  style: TextStyle(color: AppColors.textSec, fontSize: 13)),
-              SizedBox(height: 4),
+                  style: TextStyle(
+                      color: cs.onSurface.withValues(alpha: 0.6),
+                      fontSize: 13)),
+              const SizedBox(height: 4),
               Text('App móvil para vendedores',
-                  style: TextStyle(color: AppColors.textSec, fontSize: 13)),
+                  style: TextStyle(
+                      color: cs.onSurface.withValues(alpha: 0.6),
+                      fontSize: 13)),
             ],
           ),
         ),
@@ -161,11 +211,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () => auth.logout(),
-            icon: const Icon(Icons.logout, color: AppColors.danger),
-            label: const Text('CERRAR SESIÓN',
+            icon: Icon(Icons.logout, color: AppColors.danger),
+            label: Text('CERRAR SESIÓN',
                 style: TextStyle(color: AppColors.danger)),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.danger),
+              side: BorderSide(color: AppColors.danger),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),

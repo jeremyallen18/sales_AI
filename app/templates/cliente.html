@@ -10,6 +10,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@700;800&display=swap" rel="stylesheet"/>
   <link href="{{ url_for('static', filename='css/cliente.css') }}" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    .branch-map-marker {
+      width:36px;height:36px;background:#fff;border:2.5px solid #b5000b;
+      border-radius:50%;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 10px rgba(181,0,11,.22);transition:all .2s;cursor:pointer;
+    }
+    .branch-map-marker.active {
+      width:46px;height:46px;background:#b5000b;
+      box-shadow:0 4px 18px rgba(181,0,11,.45);
+    }
+    .branch-map-marker .material-symbols-outlined {
+      font-size:17px;color:#b5000b;font-variation-settings:'FILL' 1;
+    }
+    .branch-map-marker.active .material-symbols-outlined { color:#fff;font-size:22px; }
+    #branch-leaflet-map .leaflet-control-attribution { font-size:9px; }
+  </style>
 
   <script id="tw-config">
     tailwind.config = {
@@ -104,20 +121,24 @@
 <!-- ════════════════════════════════
      BARRA DE NAVEGACIÓN SUPERIOR
 ════════════════════════════════ -->
-<header class="sticky top-0 z-50 bg-surface shadow-sm">
+<header class="glass sticky top-0 z-50 border-b shadow-sm header-brand-line">
   <!-- Fila principal -->
   <div class="flex items-center justify-between px-4 md:px-[48px] h-16 max-w-[1280px] mx-auto">
     <!-- Logo -->
-    <h1 onclick="showStore()"
-        class="font-display text-headline-lg-mobile md:text-headline-lg font-extrabold text-primary cursor-pointer hover:text-primary-container transition-colors active:scale-95">
-      OXXO Go
-    </h1>
+    <div onclick="showStore()" class="flex items-center gap-2.5 cursor-pointer active:scale-95 transition-transform">
+      <div class="icon-tile w-9 h-9 rounded-xl">
+        <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1">storefront</span>
+      </div>
+      <h1 class="font-display text-headline-lg-mobile md:text-[26px] font-extrabold text-primary tracking-tight">
+        TiendIA
+      </h1>
+    </div>
 
     <!-- Buscador desktop -->
     <div class="hidden md:flex flex-1 max-w-xl mx-8 relative group">
-      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+      <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
       <input id="search-input" type="text" placeholder="Buscar productos..."
-        class="w-full h-12 bg-surface-container rounded-lg pl-12 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary focus:bg-surface transition-all font-body-md text-body-md"/>
+        class="w-full h-12 bg-surface-container rounded-full pl-12 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary focus:bg-surface transition-all font-body-md text-body-md"/>
     </div>
 
     <!-- Dark mode toggle -->
@@ -125,6 +146,18 @@
       class="text-on-surface-variant hover:text-primary transition-colors active:scale-95 ml-2"
       aria-label="Cambiar tema">
       <span class="material-symbols-outlined text-[24px]" data-theme-icon="">dark_mode</span>
+    </button>
+
+    <!-- Profile button -->
+    <button id="profile-btn" onclick="openProfileModal()"
+      class="relative text-on-surface-variant hover:text-primary transition-colors active:scale-95 ml-2"
+      aria-label="Mi cuenta">
+      <span id="profile-icon-default" class="material-symbols-outlined text-[26px]">account_circle</span>
+      <span id="profile-icon-avatar"
+        class="hidden w-7 h-7 bg-primary text-on-primary rounded-full text-xs font-bold flex items-center justify-center uppercase">
+      </span>
+      <!-- Green dot when signed in -->
+      <span id="profile-dot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-surface"></span>
     </button>
 
     <!-- Ícono carrito -->
@@ -139,8 +172,20 @@
     <div class="relative">
       <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
       <input id="search-mobile" type="text" placeholder="Buscar productos..."
-        class="w-full h-10 bg-surface-container rounded-lg pl-10 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary transition-all text-[14px]"/>
+        class="w-full h-10 bg-surface-container rounded-full pl-10 pr-4 border-none focus:outline-none focus:ring-2 focus:ring-primary transition-all text-[14px]"/>
     </div>
+  </div>
+  <!-- Barra de sucursal activa -->
+  <div class="px-4 md:px-[48px] pb-2 flex items-center gap-1.5 flex-wrap" id="branch-bar">
+    <span class="material-symbols-outlined text-base text-primary"
+      style="font-variation-settings:'FILL' 1">store</span>
+    <span class="text-xs font-medium text-on-surface-variant truncate max-w-[180px]"
+      id="branch-label-text">Todas las tiendas</span>
+    <span id="branch-rating-stars" class="hidden flex items-center gap-0.5"></span>
+    <button onclick="openBranchSelector()"
+      class="text-xs font-bold text-primary ml-0.5 hover:underline active:opacity-70 shrink-0">
+      Cambiar
+    </button>
   </div>
 </header>
 
@@ -170,12 +215,12 @@
     <!-- ── Carrusel publicitario ── -->
     <section id="hero-section" class="px-4 md:px-lg py-md mt-2"
       onmouseenter="pauseSlider()" onmouseleave="resumeSlider()">
-      <div class="relative w-full h-52 md:h-72 rounded-xl overflow-hidden shadow-lg">
+      <div class="relative w-full h-52 md:h-72 rounded-2xl overflow-hidden" style="box-shadow:var(--shadow-3)">
 
         <!-- SLIDE 0 · Bienvenido -->
         <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#b5000b 0%,#e30613 55%,#930007 100%)">
           <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
-          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+          <div class="hero-content absolute inset-0 flex flex-col justify-center px-8 md:px-12">
             <span class="inline-block bg-[#fed400] text-[#6f5c00] text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">BIENVENIDO</span>
             <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Todo lo que<br/><span style="color:#ffe174">necesitas, aquí.</span></h2>
             <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Los mejores productos al mejor precio.</p>
@@ -189,7 +234,7 @@
         <!-- SLIDE 1 · Bebidas -->
         <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#1565c0 0%,#1976d2 55%,#0d47a1 100%);transform:translateX(100%)">
           <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
-          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+          <div class="hero-content absolute inset-0 flex flex-col justify-center px-8 md:px-12">
             <span class="inline-block bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">REFRESCANTE</span>
             <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Bebidas para<br/><span style="color:#90caf9">cada momento</span></h2>
             <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Aguas, jugos, refrescos y más.</p>
@@ -203,7 +248,7 @@
         <!-- SLIDE 2 · Snacks -->
         <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#e65100 0%,#f57c00 55%,#bf360c 100%);transform:translateX(200%)">
           <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
-          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+          <div class="hero-content absolute inset-0 flex flex-col justify-center px-8 md:px-12">
             <span class="inline-block bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">MÁS VENDIDO</span>
             <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Snacks<br/><span style="color:#ffe0b2">irresistibles</span></h2>
             <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Las botanas favoritas de todos.</p>
@@ -217,7 +262,7 @@
         <!-- SLIDE 3 · Dulces -->
         <div class="hero-slide absolute inset-0" style="background:linear-gradient(135deg,#6a1b9a 0%,#8e24aa 55%,#4a148c 100%);transform:translateX(300%)">
           <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-52 h-52 bg-white/10 rounded-full blur-3xl"></div>
-          <div class="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+          <div class="hero-content absolute inset-0 flex flex-col justify-center px-8 md:px-12">
             <span class="inline-block bg-[#fed400] text-[#6f5c00] text-[12px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow-sm">DULCE ANTOJO</span>
             <h2 class="font-display text-[26px] md:text-[44px] font-extrabold text-white leading-tight mb-2">Dulces y<br/><span style="color:#e1bee7">chocolates</span></h2>
             <p class="text-white/80 text-[15px] mb-5 max-w-xs font-medium hidden md:block">Porque siempre hay lugar para lo dulce.</p>
@@ -247,6 +292,30 @@
         </div>
 
       </div>
+    </section>
+
+    <!-- ── Fila de ofertas destacadas ── -->
+    <section id="offers-preview-section" class="hidden px-4 md:px-lg py-md">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-display text-headline-sm-mobile font-bold text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-amber-500" style="font-variation-settings:'FILL' 1">local_offer</span>
+          Ofertas
+        </h3>
+        <button onclick="showOffers()" class="text-xs font-semibold text-primary hover:underline">Ver todas</button>
+      </div>
+      <div id="offers-row" class="flex gap-3 overflow-x-auto hide-scrollbar pb-2"></div>
+    </section>
+
+    <!-- ── Fila de combos destacados ── -->
+    <section id="combos-preview-section" class="hidden px-4 md:px-lg py-md">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-display text-headline-sm-mobile font-bold text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-purple-500" style="font-variation-settings:'FILL' 1">dining</span>
+          Combos
+        </h3>
+        <button onclick="showCombos()" class="text-xs font-semibold text-primary hover:underline">Ver todos</button>
+      </div>
+      <div id="combos-row" class="flex gap-3 overflow-x-auto hide-scrollbar pb-2"></div>
     </section>
 
     <!-- Grid de productos -->
@@ -291,7 +360,7 @@
       <span class="material-symbols-outlined text-[80px]">shopping_cart</span>
       <p class="font-display text-headline-md font-bold">Tu carrito está vacío</p>
       <button onclick="showStore()"
-        class="bg-primary text-on-primary font-label-lg font-bold px-8 py-3 rounded-full hover:bg-primary-container transition-colors shadow-md active:scale-95">
+        class="btn-brand text-on-primary font-label-lg font-bold px-8 py-3 rounded-full transition-all active:scale-95">
         Explorar productos
       </button>
     </div>
@@ -331,7 +400,7 @@
 
       <!-- Botón pagar -->
       <button onclick="openCheckout()"
-        class="w-full bg-primary text-on-primary h-14 rounded-full font-label-lg text-label-lg font-bold hover:bg-surface-tint hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-sm mt-2 relative overflow-hidden group">
+        class="btn-brand w-full text-on-primary h-14 rounded-full font-label-lg text-label-lg font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-sm mt-2 relative overflow-hidden group">
         <span class="relative z-10 flex items-center gap-2">
           Proceder al pago
           <span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -345,9 +414,43 @@
 
 
 <!-- ════════════════════════════════
+     VISTA: OFERTAS
+════════════════════════════════ -->
+<div id="view-offers" class="hidden w-full max-w-[1280px] mx-auto px-4 md:px-[48px] py-lg pb-24 lg:pb-xl">
+  <div class="flex items-center gap-3 mb-6">
+    <span class="material-symbols-outlined text-amber-500 text-3xl" style="font-variation-settings:'FILL' 1">local_offer</span>
+    <div>
+      <h1 class="font-display text-2xl font-extrabold text-on-surface">Ofertas y Descuentos</h1>
+      <p class="text-sm text-on-surface-variant">Los mejores precios de hoy</p>
+    </div>
+  </div>
+  <div id="client-offers-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div class="col-span-full py-10 text-center text-on-surface-variant text-sm">Cargando ofertas...</div>
+  </div>
+</div><!-- /view-offers -->
+
+
+<!-- ════════════════════════════════
+     VISTA: COMBOS
+════════════════════════════════ -->
+<div id="view-combos" class="hidden w-full max-w-[1280px] mx-auto px-4 md:px-[48px] py-lg pb-24 lg:pb-xl">
+  <div class="flex items-center gap-3 mb-6">
+    <span class="material-symbols-outlined text-purple-500 text-3xl" style="font-variation-settings:'FILL' 1">dining</span>
+    <div>
+      <h1 class="font-display text-2xl font-extrabold text-on-surface">Combos</h1>
+      <p class="text-sm text-on-surface-variant">Paquetes especiales a precio único</p>
+    </div>
+  </div>
+  <div id="client-combos-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div class="col-span-full py-10 text-center text-on-surface-variant text-sm">Cargando combos...</div>
+  </div>
+</div><!-- /view-combos -->
+
+
+<!-- ════════════════════════════════
      NAV INFERIOR (solo mobile)
 ════════════════════════════════ -->
-<nav class="lg:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-6 py-2 pb-safe bg-surface shadow-[0_-4px_12px_rgba(0,0,0,0.06)] rounded-t-xl z-50 border-t border-outline-variant/10">
+<nav class="glass lg:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-6 py-2 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.06)] rounded-t-2xl z-50 border-t">
   <button data-nav="store" onclick="showStore()"
     class="flex flex-col items-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 font-bold transition-all active:scale-90">
     <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">home</span>
@@ -360,6 +463,19 @@
     <span class="cart-badge hidden absolute top-0.5 right-0.5 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow transition-transform"></span>
     <span class="font-label-md text-label-md mt-1">Carrito</span>
   </button>
+
+  <button data-nav="offers" onclick="showOffers()"
+    class="flex flex-col items-center text-on-surface-variant hover:bg-surface-variant rounded-lg p-2 transition-all active:scale-90">
+    <span class="material-symbols-outlined">local_offer</span>
+    <span class="font-label-md text-label-md mt-1">Ofertas</span>
+  </button>
+
+  <button onclick="openProfileModal()"
+    class="flex flex-col items-center text-on-surface-variant hover:bg-surface-variant rounded-lg p-2 relative transition-all active:scale-90">
+    <span id="profile-nav-icon" class="material-symbols-outlined">account_circle</span>
+    <span id="profile-nav-dot" class="hidden absolute top-0.5 right-1 w-2 h-2 bg-green-500 rounded-full border border-surface"></span>
+    <span class="font-label-md text-label-md mt-1">Perfil</span>
+  </button>
 </nav>
 
 
@@ -369,8 +485,8 @@
 <footer class="w-full mt-xl bg-surface-container-high border-t border-outline-variant hidden md:block">
   <div class="flex flex-col md:flex-row justify-between items-center px-4 md:px-[48px] py-lg max-w-[1280px] mx-auto">
     <div class="mb-4 md:mb-0">
-      <h2 class="font-display text-headline-md text-primary mb-1">OXXO Go</h2>
-      <p class="font-body-md text-body-md text-on-surface-variant">© 2024 OXXO Go. Todos los derechos reservados.</p>
+      <h2 class="font-display text-headline-md text-primary mb-1">TiendIA</h2>
+      <p class="font-body-md text-body-md text-on-surface-variant">© 2024 TiendIA. Todos los derechos reservados.</p>
     </div>
     <div class="flex flex-wrap gap-x-8 gap-y-2">
       <a href="#" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Aviso de privacidad</a>
@@ -509,7 +625,7 @@
 
       <!-- Botón confirmar -->
       <button id="confirm-btn" onclick="confirmCheckout()"
-        class="w-full bg-primary text-on-primary h-14 rounded-full font-label-lg font-bold hover:bg-surface-tint transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-1 shadow-lg hover:shadow-primary/30">
+        class="btn-brand w-full text-on-primary h-14 rounded-full font-label-lg font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-1">
         Confirmar compra <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
       </button>
 
@@ -524,7 +640,7 @@
 
 <!-- Botón flotante del chat -->
 <button id="chat-fab" onclick="toggleChat()"
-  class="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-[90] w-14 h-14 bg-primary text-on-primary rounded-full shadow-xl hover:bg-surface-tint hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-90 flex items-center justify-center">
+  class="chat-fab fixed bottom-20 right-4 md:bottom-8 md:right-8 z-[90] w-14 h-14 text-on-primary rounded-full transition-all active:scale-90 flex items-center justify-center">
   <span id="chat-fab-icon" class="material-symbols-outlined text-[28px]" style="font-variation-settings:'FILL' 1">chat</span>
 </button>
 
@@ -534,7 +650,7 @@
   style="max-height:480px">
 
   <!-- Encabezado -->
-  <div class="flex items-center gap-3 px-4 py-3 bg-primary text-on-primary flex-shrink-0">
+  <div class="flex items-center gap-3 px-4 py-3 text-on-primary flex-shrink-0" style="background:var(--grad-brand)">
     <div class="w-9 h-9 bg-on-primary/15 rounded-full flex items-center justify-center flex-shrink-0">
       <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">smart_toy</span>
     </div>
@@ -585,19 +701,343 @@
 <!-- ════════════════════════════════
      TOASTS
 ════════════════════════════════ -->
-<div id="toast-success"
-  class="toast hidden fixed bottom-28 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-on-surface text-inverse-on-surface px-6 py-3 rounded-full shadow-xl flex items-center gap-3 whitespace-nowrap">
-  <span class="material-symbols-outlined text-secondary-container text-[20px]" style="font-variation-settings:'FILL' 1">check_circle</span>
-  <span class="toast-msg font-label-lg font-bold"></span>
-</div>
-
-<div id="toast-error"
-  class="toast hidden fixed bottom-28 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-error text-on-error px-6 py-3 rounded-full shadow-xl flex items-center gap-3 whitespace-nowrap">
-  <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">error</span>
-  <span class="toast-msg font-label-lg font-bold"></span>
-</div>
+<div id="toastStack"></div>
 
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/ui.js') }}"></script>
 <script src="{{ url_for('static', filename='js/cliente.js') }}"></script>
+
+
+<!-- ════════════════════════════════
+     MODAL: PERFIL / CUENTA
+════════════════════════════════ -->
+<div id="modal-profile"
+  class="hidden fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="w-full md:max-w-sm bg-surface rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden">
+
+    <!-- Handle mobile -->
+    <div class="md:hidden flex justify-center pt-3 pb-1">
+      <div class="w-12 h-1 bg-on-surface-variant/25 rounded-full"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20">
+      <h2 class="font-display text-headline-md font-bold text-on-surface">Mi cuenta</h2>
+      <button onclick="closeProfileModal()"
+        class="text-on-surface-variant hover:text-on-surface transition-colors rounded-full p-1 active:scale-90">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- GUEST STATE -->
+    <div id="profile-guest" class="px-6 py-8 flex flex-col items-center gap-5">
+      <div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center">
+        <span class="material-symbols-outlined text-[40px] text-on-surface-variant">account_circle</span>
+      </div>
+      <div class="text-center">
+        <p class="font-display text-headline-md font-bold text-on-surface mb-1">¡Inicia sesión!</p>
+        <p class="font-body-md text-body-md text-on-surface-variant text-sm">Tu nombre se llenará automáticamente en el checkout y tus compras quedarán registradas.</p>
+      </div>
+      <button id="google-signin-btn" type="button"
+        class="w-full border border-surface-container-highest rounded-xl h-12 flex items-center justify-center gap-3 bg-surface-container-lowest hover:bg-surface-container-low text-on-surface font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Continuar con Google
+      </button>
+    </div>
+
+    <!-- SIGNED IN STATE -->
+    <div id="profile-signedin" class="hidden px-6 py-6 flex flex-col gap-5">
+      <!-- Avatar + info -->
+      <div class="flex items-center gap-4">
+        <div id="profile-modal-avatar"
+          class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center text-2xl font-bold uppercase flex-shrink-0">
+        </div>
+        <div class="min-w-0">
+          <p id="profile-modal-name" class="font-display text-headline-md font-bold text-on-surface truncate"></p>
+          <p id="profile-modal-email" class="font-body-md text-body-md text-on-surface-variant text-sm truncate"></p>
+        </div>
+      </div>
+
+      <div class="h-px bg-outline-variant/30"></div>
+
+      <!-- Sign out -->
+      <button id="signout-btn" type="button"
+        class="w-full border border-outline-variant rounded-lg h-11 flex items-center justify-center gap-2 text-on-surface-variant hover:bg-surface-container hover:text-error hover:border-error font-medium text-sm transition-colors">
+        <span class="material-symbols-outlined text-[20px]">logout</span>
+        Cerrar sesión
+      </button>
+    </div>
+
+    <!-- MIS PEDIDOS (historial local del dispositivo) -->
+    <div id="my-orders" class="hidden px-6 pb-6">
+      <div class="h-px bg-outline-variant/30 mb-4"></div>
+      <h3 class="font-label-lg text-label-lg font-bold text-on-surface mb-1 flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[20px]">receipt_long</span>
+        Mis pedidos recientes
+      </h3>
+      <div id="orders-list"></div>
+    </div>
+
+  </div>
+</div><!-- /modal-profile -->
+
+
+<!-- Google Sign-In for customers — server-side OAuth popup (sin restricción de dominio) -->
+<script>
+  (function() {
+
+  /* ── UI helpers ─────────────────────────────── */
+  function setSignedIn(name, email) {
+    const initial = (name || email || '?')[0].toUpperCase();
+
+    // Header icon
+    document.getElementById('profile-icon-default')?.classList.add('hidden');
+    const av = document.getElementById('profile-icon-avatar');
+    if (av) { av.textContent = initial; av.classList.remove('hidden'); }
+    document.getElementById('profile-dot')?.classList.remove('hidden');
+
+    // Mobile nav
+    document.getElementById('profile-nav-dot')?.classList.remove('hidden');
+
+    // Modal
+    const modalAv = document.getElementById('profile-modal-avatar');
+    if (modalAv) modalAv.textContent = initial;
+    const nameEl = document.getElementById('profile-modal-name');
+    if (nameEl) nameEl.textContent = name || '';
+    const emailEl = document.getElementById('profile-modal-email');
+    if (emailEl) emailEl.textContent = email || '';
+    document.getElementById('profile-guest')?.classList.add('hidden');
+    document.getElementById('profile-signedin')?.classList.remove('hidden');
+  }
+
+  function setSignedOut() {
+    document.getElementById('profile-icon-default')?.classList.remove('hidden');
+    document.getElementById('profile-icon-avatar')?.classList.add('hidden');
+    document.getElementById('profile-dot')?.classList.add('hidden');
+    document.getElementById('profile-nav-dot')?.classList.add('hidden');
+    document.getElementById('profile-guest')?.classList.remove('hidden');
+    document.getElementById('profile-signedin')?.classList.add('hidden');
+  }
+
+  /* ── Restore session from localStorage ─────── */
+  (function restoreSession() {
+    const name  = localStorage.getItem('customer_display_name');
+    const email = localStorage.getItem('customer_email');
+    const token = localStorage.getItem('customer_token');
+    if (token && (name || email)) setSignedIn(name, email);
+  })();
+
+  /* ── Expose modal open/close to global scope ── */
+  window.openProfileModal = function() {
+    if (typeof renderMyOrders === 'function') renderMyOrders();
+    document.getElementById('modal-profile')?.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeProfileModal = function() {
+    document.getElementById('modal-profile')?.classList.add('hidden');
+    document.body.style.overflow = '';
+  };
+  // Close on backdrop click
+  document.getElementById('modal-profile')?.addEventListener('click', function(e) {
+    if (e.target === this) window.closeProfileModal();
+  });
+
+  /* ── Google Sign-In — popup server-side ────── */
+  const signinBtn = document.getElementById('google-signin-btn');
+  if (signinBtn) {
+    signinBtn.addEventListener('click', () => {
+      signinBtn.disabled    = true;
+      signinBtn.textContent = 'Autenticando…';
+
+      const w    = 500, h = 620;
+      const left = Math.max(0, (screen.width  - w) / 2);
+      const top  = Math.max(0, (screen.height - h) / 2);
+      const popup = window.open(
+        'http://localhost:5000/auth/google/start?mode=customer',
+        'google_oauth_customer',
+        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+      );
+
+      if (!popup) {
+        _showPopupBlocked(signinBtn);
+        resetSigninBtn();
+        return;
+      }
+
+      window.addEventListener('message', function handler(e) {
+        if (!e.data || !e.data.type) return;
+        window.removeEventListener('message', handler);
+        resetSigninBtn();
+
+        if (e.data.type === 'google-auth-ok') {
+          const c = e.data.customer || {};
+          localStorage.setItem('customer_token',        e.data.token);
+          localStorage.setItem('customer_display_name', c.display_name || '');
+          localStorage.setItem('customer_email',        c.email || '');
+          setSignedIn(c.display_name, c.email);
+          window.closeProfileModal();
+        } else if (e.data.type === 'google-auth-error') {
+          alert(e.data.error || 'Error de autenticación');
+        }
+      });
+
+      const timer = setInterval(() => {
+        if (popup.closed) { clearInterval(timer); resetSigninBtn(); }
+      }, 500);
+    });
+  }
+
+  function _showPopupBlocked(btn) {
+    btn.textContent = '⚠ Popup bloqueado — haz clic aquí';
+    btn.style.borderColor = '#f59e0b';
+    btn.style.color       = '#f59e0b';
+    if (!document.getElementById('popup-hint-cust')) {
+      const hint = document.createElement('p');
+      hint.id        = 'popup-hint-cust';
+      hint.className = 'text-xs text-center mt-2';
+      hint.style.color = '#f59e0b';
+      hint.textContent = 'Tu navegador bloqueó el popup. Permite popups para esta página y vuelve a intentarlo.';
+      btn.parentNode.insertBefore(hint, btn.nextSibling);
+    }
+  }
+
+  function resetSigninBtn() {
+    if (!signinBtn) return;
+    signinBtn.disabled      = false;
+    signinBtn.style.borderColor = '';
+    signinBtn.style.color       = '';
+    signinBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg> Continuar con Google`;
+  }
+
+  /* ── Sign-Out ────────────────────────────────── */
+  document.getElementById('signout-btn')?.addEventListener('click', () => {
+    localStorage.removeItem('customer_token');
+    localStorage.removeItem('customer_display_name');
+    localStorage.removeItem('customer_email');
+    setSignedOut();
+    window.closeProfileModal();
+  });
+
+  })(); // IIFE
+</script>
+
+<!-- Modal: Reseñas de producto -->
+<div id="modal-product-review"
+  class="fixed inset-0 z-[210] bg-black/50 hidden items-end md:items-center justify-center"
+  onclick="if(event.target===this)closeProductReviewModal()">
+  <div class="bg-surface w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 max-h-[85vh] overflow-y-auto shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-bold text-on-surface text-lg truncate pr-4" id="review-modal-title">Reseñas</h3>
+      <button onclick="closeProductReviewModal()" class="shrink-0 text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <!-- Lista de reseñas -->
+    <div id="review-list" class="flex flex-col gap-3 mb-5"></div>
+    <!-- Formulario (solo si está logueado) -->
+    <div id="review-form" class="hidden border-t border-outline-variant pt-4">
+      <p class="text-sm font-semibold text-on-surface mb-2">Tu calificación</p>
+      <div id="star-selector" class="flex gap-1 mb-3"></div>
+      <textarea id="review-comment" rows="3" placeholder="Comentario (opcional)..."
+        class="w-full rounded-xl border border-outline-variant bg-surface-container p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+      <button onclick="submitProductReview()"
+        class="mt-3 w-full btn-brand py-2.5 rounded-xl font-bold text-sm text-on-primary">
+        Publicar reseña
+      </button>
+    </div>
+    <p id="review-login-hint" class="hidden text-xs text-on-surface-variant text-center pt-4 border-t border-outline-variant">
+      <button onclick="closeProductReviewModal();openProfileModal()" class="text-primary font-bold">Inicia sesión</button>
+      para dejar una reseña
+    </p>
+  </div>
+</div>
+
+<!-- Modal: Reseña de sucursal -->
+<div id="modal-branch-review"
+  class="fixed inset-0 z-[210] bg-black/50 hidden items-end md:items-center justify-center"
+  onclick="if(event.target===this)closeBranchReviewModal()">
+  <div class="bg-surface w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display font-bold text-on-surface text-lg">Calificar tienda</h3>
+      <button onclick="closeBranchReviewModal()" class="text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <p class="text-sm text-on-surface-variant mb-4">¿Cómo fue tu experiencia en esta tienda?</p>
+    <div id="branch-star-selector" class="flex gap-1 mb-4"></div>
+    <textarea id="branch-review-comment" rows="3" placeholder="Comentario (opcional)..."
+      class="w-full rounded-xl border border-outline-variant bg-surface-container p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary mb-3"></textarea>
+    <button onclick="submitBranchReview()"
+      class="w-full btn-brand py-2.5 rounded-xl font-bold text-sm text-on-primary">
+      Publicar reseña
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Selector de sucursal con mapa -->
+<div id="modal-branch-selector"
+  class="fixed inset-0 z-[200] bg-black/50 hidden items-end md:items-center justify-center"
+  onclick="if(event.target===this)closeBranchSelector()">
+  <div class="bg-surface w-full md:w-[92vw] md:max-w-5xl rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+    style="height:92vh;max-height:720px">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/20 flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[22px]"
+          style="font-variation-settings:'FILL' 1">store_mall_directory</span>
+        <h3 class="font-display text-headline-md font-bold text-on-surface">Seleccionar tienda</h3>
+      </div>
+      <button onclick="closeBranchSelector()"
+        class="text-on-surface-variant hover:text-on-surface rounded-full p-1 hover:bg-surface-container active:scale-90 transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Body: lista (izq) + mapa (der) -->
+    <div class="flex flex-col md:flex-row flex-1 min-h-0">
+
+      <!-- Panel izquierdo: lista -->
+      <div class="w-full md:w-72 flex-shrink-0 flex flex-col border-b md:border-b-0 md:border-r border-outline-variant/20"
+        style="height:42%;min-height:190px;max-height:42%;md:max-height:none">
+        <!-- Opción "Todas" -->
+        <button id="branch-selector-all" onclick="selectBranch(null)"
+          class="w-full text-left px-4 py-3 border-b border-outline-variant/20 flex items-center gap-3 hover:bg-surface-container transition-colors flex-shrink-0">
+          <span class="material-symbols-outlined text-primary text-[20px]">store_mall_directory</span>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-on-surface text-sm">Todas las tiendas</p>
+            <p class="text-on-surface-variant text-xs truncate">Ver toda la oferta disponible</p>
+          </div>
+          <span class="branch-all-check material-symbols-outlined text-primary text-lg hidden"
+            style="font-variation-settings:'FILL' 1">check_circle</span>
+        </button>
+        <!-- Lista de sucursales -->
+        <div id="branch-selector-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-2"></div>
+      </div>
+
+      <!-- Panel derecho: mapa -->
+      <div class="flex-1 relative" style="min-height:220px">
+        <div id="branch-leaflet-map" class="w-full h-full"></div>
+        <div id="branch-no-map"
+          class="hidden absolute inset-0 flex flex-col items-center justify-center bg-surface-container text-on-surface-variant gap-2">
+          <span class="material-symbols-outlined text-[52px] text-outline-variant">map</span>
+          <p class="text-sm">Sin coordenadas registradas</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 </body>
 </html>

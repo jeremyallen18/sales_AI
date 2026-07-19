@@ -42,11 +42,21 @@ def store_chat():
         return jsonify({"error": "El mensaje no puede estar vacío"}), 400
 
     try:
-        products = get_all_products()
-        product_lines = "\n".join(
-            f"• {sanitize_text(p.name)} | Categoría: {sanitize_text(p.category)} | Precio: ${p.price:.2f}"
-            for p in products if p.stock > 0
-        )
+        branch_id = data.get("branch_id") or None
+        if branch_id:
+            from ..services.branch_service import get_branch_inventory
+            items = get_branch_inventory(int(branch_id))
+            product_lines = "\n".join(
+                f"• {sanitize_text(bi.product.name)} | Categoría: {sanitize_text(bi.product.category)}"
+                f" | Precio: ${bi.effective_price():.2f}"
+                for bi in items if bi.stock > 0
+            )
+        else:
+            products = get_all_products()
+            product_lines = "\n".join(
+                f"• {sanitize_text(p.name)} | Categoría: {sanitize_text(p.category)} | Precio: ${p.price:.2f}"
+                for p in products if p.stock > 0
+            )
         product_block = wrap_business_data(product_lines or "Sin productos disponibles")
         system_prompt = STORE_SYSTEM_PROMPT.format(guard=DATA_GUARD, product_block=product_block)
 

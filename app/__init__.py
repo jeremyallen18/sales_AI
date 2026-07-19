@@ -3,13 +3,14 @@ app/__init__.py — Fábrica de la aplicación Flask.
 Registra blueprints, base de datos y configuración inicial.
 """
 
+import os
 import logging
 from flask import Flask, jsonify, send_from_directory
 from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from .database.db import db
+from .database.db import db, migrate
 from .config import Config
 
 logging.basicConfig(
@@ -21,29 +22,25 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address, default_limits=[], storage_uri="memory://")
 
 
-def _migrate_columns(app):
-    """Add new columns to existing tables if they don't exist (SQLite)."""
-    import sqlite3
-    db_path = app.config["SQLALCHEMY_DATABASE_URI"].replace("sqlite:///", "")
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    migrations = [
-        ("products", "image_url",       "TEXT DEFAULT ''"),
-        ("products", "discount_pct",    "REAL DEFAULT 0.0"),
-        ("sales",    "client_name",     "TEXT DEFAULT ''"),
-        ("sales",    "payment_method",  "TEXT DEFAULT 'efectivo'"),
-        ("sales",    "payment_status",  "TEXT DEFAULT 'aprobado'"),
-        ("sales",    "subtotal_amount", "REAL DEFAULT 0.0"),
-        ("sales",    "discount_amount", "REAL DEFAULT 0.0"),
-        ("sales",    "tax_amount",      "REAL DEFAULT 0.0"),
-    ]
-    for table, column, col_type in migrations:
-        cursor.execute(f"PRAGMA table_info({table})")
-        columns = [row[1] for row in cursor.fetchall()]
-        if column not in columns:
-            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
-    conn.commit()
-    conn.close()
+
+def _init_firebase(app):
+    """Inicializa Firebase Admin SDK si el archivo de credenciales existe."""
+    try:
+        import firebase_admin
+        from firebase_admin import credentials as fb_credentials
+        if not firebase_admin._apps:
+            cred_path = app.config.get("FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json")
+            if os.path.exists(cred_path):
+                cred = fb_credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
+                logger.info("Firebase Admin SDK inicializado desde %s", cred_path)
+            else:
+                logger.warning(
+                    "Credenciales Firebase no encontradas en '%s'. "
+                    "Los endpoints de Google Sign-In estarán deshabilitados.", cred_path
+                )
+    except ImportError:
+        logger.warning("firebase-admin no está instalado. Ejecuta: pip install firebase-admin")
 
 
 def create_app():
@@ -53,8 +50,11 @@ def create_app():
 
     # Inicializar extensiones
     db.init_app(app)
+    migrate.init_app(app, db)
     limiter.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    _init_firebase(app)
 
     # Registrar blueprints (módulos de rutas)
     from .routes.auth_routes import auth_bp
@@ -67,8 +67,16 @@ def create_app():
     from .routes.store_routes import store_bp
     from .routes.health_routes import health_bp
     from .routes.bi_routes import bi_bp
+    from .routes.firebase_auth_routes import firebase_auth_bp
+    from .routes.google_oauth_routes import google_oauth_bp
+    from .routes.branch_routes import branch_bp
+    from .routes.review_routes import review_bp, product_review_bp
+    from .routes.combo_routes import combo_bp
+    from .routes.corte_routes import corte_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(firebase_auth_bp)
+    app.register_blueprint(google_oauth_bp)
     app.register_blueprint(sales_bp)
     app.register_blueprint(inventory_bp)
     app.register_blueprint(analytics_bp)
@@ -78,6 +86,11 @@ def create_app():
     app.register_blueprint(store_bp)
     app.register_blueprint(health_bp)
     app.register_blueprint(bi_bp)
+    app.register_blueprint(branch_bp)
+    app.register_blueprint(review_bp)
+    app.register_blueprint(product_review_bp)
+    app.register_blueprint(combo_bp)
+    app.register_blueprint(corte_bp)
 
     # Favicon — evita 404 constante en browsers
     @app.route("/favicon.ico")
@@ -102,10 +115,9 @@ def create_app():
         logger.exception("Error no capturado: %s", e)
         return jsonify({"error": "Error interno del servidor"}), 500
 
-    # Crear tablas si no existen y migrar columnas nuevas
+    # Crear tablas si no existen (fallback sin Flask-Migrate) y sembrar datos iniciales
     with app.app_context():
         db.create_all()
-        _migrate_columns(app)
         from .database.seed import seed_if_empty
         seed_if_empty()
 

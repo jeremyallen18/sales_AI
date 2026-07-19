@@ -11,11 +11,15 @@ chatbot_bp = Blueprint("chatbot", __name__, url_prefix="/api/chat")
 @limiter.limit("20 per minute; 100 per hour")
 def chat():
     """Recibe pregunta del usuario y retorna respuesta de IA con streaming."""
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data:
+        return Response("data: {\"error\": \"JSON inválido\"}\n\n", mimetype="text/event-stream", status=400)
     user_message = data.get("message", "")
 
+    branch_id = data.get("branch_id") or None
+
     def generate():
-        for chunk in get_ai_response(user_message, stream=True):
+        for chunk in get_ai_response(user_message, stream=True, branch_id=branch_id):
             yield chunk
 
     return Response(
@@ -31,10 +35,13 @@ def chat():
 @limiter.limit("20 per minute; 100 per hour")
 def chat_json():
     """Respuesta JSON sin streaming — para apps móviles."""
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "JSON inválido o Content-Type incorrecto"}), 400
     user_message = data.get("message", "")
+    branch_id = data.get("branch_id") or None
     try:
-        response_text = get_ai_response(user_message, stream=False)
+        response_text = get_ai_response(user_message, stream=False, branch_id=branch_id)
         return jsonify({"response": response_text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -12,6 +12,24 @@ class ApiConfig {
   static String get sales => '$_baseUrl/api/sales/';
   static String get storeChat => '$_baseUrl/tienda/chat';
 
+  // ── Sucursales ────────────────────────────────────────────
+  static String get branches => '$_baseUrl/api/branches/';
+  static String nearbyBranches(double lat, double lng, {double radius = 20}) =>
+      '$_baseUrl/api/branches/nearby?lat=$lat&lng=$lng&radius=$radius';
+  static String branchInventory(int branchId) =>
+      '$_baseUrl/api/branches/$branchId/inventory';
+  static String branchReviews(int branchId) =>
+      '$_baseUrl/api/branches/$branchId/reviews';
+  static String myBranchReview(int branchId) =>
+      '$_baseUrl/api/branches/$branchId/my-review';
+
+  // ── Reseñas de productos ──────────────────────────────────
+  static String get productRatings => '$_baseUrl/api/products/ratings';
+  static String productReviews(int productId) =>
+      '$_baseUrl/api/products/$productId/reviews';
+  static String myProductReview(int productId) =>
+      '$_baseUrl/api/products/$productId/my-review';
+
   // ── Helpers ───────────────────────────────────────────────
   static String productImage(String path) {
     if (path.isEmpty) return '';

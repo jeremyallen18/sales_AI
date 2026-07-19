@@ -5,8 +5,12 @@ import os
 import uuid
 from flask import Blueprint, jsonify, request, current_app, send_from_directory
 from werkzeug.utils import secure_filename
+from sqlalchemy import func
+from ..database.db import db
+from ..models.branch_inventory import BranchInventory
 from ..services.inventory_service import (get_all_products, create_product,
     update_product, delete_product, get_low_stock)
+from ..utils.auth_required import seller_required, owner_required
 
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
 
@@ -24,19 +28,44 @@ def get_upload_folder():
 def list_products():
     return jsonify([p.to_dict() for p in get_all_products()])
 
+
+@inventory_bp.route("/aggregated", methods=["GET"])
+def aggregated_inventory():
+    """Productos con stock sumado de todas las sucursales. Usa Product.stock si no hay BranchInventory."""
+    branch_stocks = dict(
+        db.session.query(
+            BranchInventory.product_id,
+            func.sum(BranchInventory.stock)
+        ).group_by(BranchInventory.product_id).all()
+    )
+    result = []
+    for p in get_all_products():
+        d = p.to_dict()
+        if p.id in branch_stocks:
+            d["stock"] = int(branch_stocks[p.id])
+        result.append(d)
+    return jsonify(result)
+
 @inventory_bp.route("/products", methods=["POST"])
+@seller_required
 def add_product():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "JSON inválido o Content-Type incorrecto"}), 400
     p = create_product(data)
     return jsonify(p.to_dict()), 201
 
 @inventory_bp.route("/products/<int:pid>", methods=["PUT"])
+@seller_required
 def edit_product(pid):
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "JSON inválido o Content-Type incorrecto"}), 400
     p = update_product(pid, data)
     return jsonify(p.to_dict())
 
 @inventory_bp.route("/products/<int:pid>", methods=["DELETE"])
+@owner_required
 def remove_product(pid):
     delete_product(pid)
     return jsonify({"ok": True})
@@ -46,6 +75,7 @@ def low_stock():
     return jsonify([p.to_dict() for p in get_low_stock()])
 
 @inventory_bp.route("/products/<int:pid>/image", methods=["POST"])
+@seller_required
 def upload_product_image(pid):
     """Sube una imagen para un producto y guarda la URL."""
     if "image" not in request.files:

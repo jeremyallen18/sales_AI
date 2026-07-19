@@ -9,15 +9,20 @@ from .payment_service import process_payment
 
 _TAX_FACTOR = 0.16 / 1.16  # extrae el IVA incluido en el precio
 
-def register_sale(items_data, client_name="", payment_method="efectivo"):
+def register_sale(items_data, client_name="", payment_method="efectivo",
+                  customer_id=None, branch_id=None):
     """
     items_data: lista de {product_id, quantity}
     client_name: nombre del cliente para el ticket
     payment_method: "efectivo" | "tarjeta" | "transferencia"
+    branch_id: si se proporciona, usa stock e inventario de esa sucursal
     Crea la venta, descuenta stock y retorna Sale.
     Los precios ya incluyen IVA; el descuento se aplica por producto.
     """
-    sale = Sale(total_amount=0, client_name=client_name)
+    from ..models.branch_inventory import BranchInventory
+
+    sale = Sale(total_amount=0, client_name=client_name,
+                customer_id=customer_id, branch_id=branch_id)
     db.session.add(sale)
     db.session.flush()
 
@@ -26,17 +31,32 @@ def register_sale(items_data, client_name="", payment_method="efectivo"):
 
     for item in items_data:
         product = Product.query.get(item["product_id"])
-        if not product or product.stock < item["quantity"]:
-            db.session.rollback()
-            name = product.name if product else str(item["product_id"])
-            raise ValueError(f"Stock insuficiente para {name}")
         qty = item["quantity"]
-        unit_price = product.price
-        disc_factor = 1.0 - (product.discount_pct or 0.0) / 100.0
+
+        price_override = item.get("price_override")
+
+        if branch_id:
+            bi = BranchInventory.query.filter_by(
+                branch_id=branch_id, product_id=item["product_id"]).first()
+            if not bi or bi.stock < qty:
+                db.session.rollback()
+                name = product.name if product else str(item["product_id"])
+                raise ValueError(f"Stock insuficiente en la sucursal para {name}")
+            unit_price  = float(price_override) if price_override is not None else bi.effective_price()
+            disc_factor = 1.0 if price_override is not None else 1.0 - bi.effective_discount() / 100.0
+            bi.stock -= qty
+        else:
+            if not product or product.stock < qty:
+                db.session.rollback()
+                name = product.name if product else str(item["product_id"])
+                raise ValueError(f"Stock insuficiente para {name}")
+            unit_price  = float(price_override) if price_override is not None else product.price
+            disc_factor = 1.0 if price_override is not None else 1.0 - (product.discount_pct or 0.0) / 100.0
+            product.stock -= qty
+
         disc_price = unit_price * disc_factor
         subtotal_bruto += unit_price * qty
         subtotal_neto += disc_price * qty
-        product.stock -= qty
         si = SaleItem(sale_id=sale.id, product_id=product.id,
                       quantity=qty, price=disc_price)
         db.session.add(si)

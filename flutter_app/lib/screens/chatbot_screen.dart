@@ -36,6 +36,9 @@ class ChatbotScreen extends StatefulWidget {
 
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final List<_Msg> _msgs = [];
+  // Mensajes que ya reprodujeron su animación de entrada (evita re-animar
+  // cuando el ListView reconstruye tiles al hacer scroll).
+  final Set<_Msg> _animated = {};
   final TextEditingController _ctrl = TextEditingController();
   final ScrollController _scroll = ScrollController();
   bool _thinking = false;
@@ -125,7 +128,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Row(
@@ -145,8 +147,20 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               itemCount: _msgs.length + (_thinking ? 1 : 0),
               itemBuilder: (_, i) {
-                if (i == _msgs.length) return const _TypingBubble();
-                return _MsgTile(msg: _msgs[i]);
+                if (i == _msgs.length) {
+                  return const _AnimatedIn(
+                    fromRight: false,
+                    child: _TypingBubble(),
+                  );
+                }
+                final msg = _msgs[i];
+                return _AnimatedIn(
+                  // Set.add devuelve true solo la primera vez que se ve el
+                  // mensaje: anima la entrada una única vez.
+                  animate: _animated.add(msg),
+                  fromRight: msg.isUser,
+                  child: _MsgTile(msg: msg),
+                );
               },
             ),
           ),
@@ -154,6 +168,64 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             _SuggestionRow(suggestions: _suggestions, onTap: _send),
           _InputBar(ctrl: _ctrl, onSend: _send, enabled: !_thinking),
         ],
+      ),
+    );
+  }
+}
+
+// ── Animaciones de entrada ────────────────────────────────────────────────────
+
+/// Fade + deslizamiento direccional al aparecer (una sola vez).
+class _AnimatedIn extends StatelessWidget {
+  final Widget child;
+  final bool fromRight;
+  final bool animate;
+  const _AnimatedIn({
+    required this.child,
+    this.fromRight = false,
+    this.animate = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!animate) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      child: child,
+      builder: (_, v, c) => Opacity(
+        opacity: v,
+        child: Transform.translate(
+          offset: Offset((fromRight ? 16 : -16) * (1 - v), 6 * (1 - v)),
+          child: c,
+        ),
+      ),
+    );
+  }
+}
+
+/// Entrada escalonada por índice (para chips y tarjetas).
+class _StaggeredIn extends StatelessWidget {
+  final Widget child;
+  final int index;
+  const _StaggeredIn({required this.child, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    final delayMs = 60 * index;
+    final totalMs = 280 + delayMs;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: totalMs),
+      curve: Interval(delayMs / totalMs, 1, curve: Curves.easeOutCubic),
+      child: child,
+      builder: (_, v, c) => Opacity(
+        opacity: v,
+        child: Transform.translate(
+          offset: Offset(0, 8 * (1 - v)),
+          child: Transform.scale(scale: 0.92 + 0.08 * v, child: c),
+        ),
       ),
     );
   }
@@ -186,17 +258,18 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final Color bg = msg.isError
-        ? AppColors.error.withValues(alpha: 0.12)
+        ? cs.error.withValues(alpha: 0.12)
         : msg.isUser
-            ? AppColors.primary
-            : AppColors.surfaceContainer;
+            ? cs.primary
+            : cs.surfaceContainer;
 
     final Color textColor = msg.isError
-        ? AppColors.error
+        ? cs.error
         : msg.isUser
             ? Colors.white
-            : AppColors.onSurface;
+            : cs.onSurface;
 
     return Align(
       alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -214,7 +287,7 @@ class _Bubble extends StatelessWidget {
             bottomRight: Radius.circular(msg.isUser ? 4 : 16),
           ),
           border: !msg.isUser && !msg.isError
-              ? Border.all(color: AppColors.outline)
+              ? Border.all(color: cs.outline)
               : null,
         ),
         child: Row(
@@ -223,7 +296,7 @@ class _Bubble extends StatelessWidget {
           children: [
             if (!msg.isUser) ...[
               Icon(Icons.smart_toy_outlined,
-                  size: 15, color: AppColors.primary),
+                  size: 15, color: cs.primary),
               const SizedBox(width: 6),
             ],
             Flexible(
@@ -269,7 +342,10 @@ class _ProductCards extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               itemCount: products.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => _ProductChip(product: products[i]),
+              itemBuilder: (_, i) => _StaggeredIn(
+                index: i,
+                child: _ProductChip(product: products[i]),
+              ),
             ),
           ),
         ],
@@ -288,14 +364,15 @@ class _ProductChip extends StatelessWidget {
     final inCart = cart.items.containsKey(product.id);
     final hasImage = product.imageUrl.isNotEmpty;
     final imgUrl = ApiConfig.productImage(product.imageUrl);
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: inCart ? AppColors.primary : AppColors.outline,
+          color: inCart ? cs.primary : cs.outline,
           width: inCart ? 1.5 : 1,
         ),
         boxShadow: [
@@ -317,10 +394,10 @@ class _ProductChip extends StatelessWidget {
                     height: 56,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => _imgPlaceholder(),
-                    placeholder: (_, __) => _imgPlaceholder(),
+                    errorWidget: (_, __, ___) => _imgPlaceholder(cs),
+                    placeholder: (_, __) => _imgPlaceholder(cs),
                   )
-                : _imgPlaceholder(),
+                : _imgPlaceholder(cs),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 5, 8, 5),
@@ -331,8 +408,8 @@ class _ProductChip extends StatelessWidget {
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.onSurface,
+                  style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 11,
                       fontWeight: FontWeight.w600),
                 ),
@@ -392,10 +469,10 @@ class _ProductChip extends StatelessWidget {
     );
   }
 
-  Widget _imgPlaceholder() => Container(
+  Widget _imgPlaceholder(ColorScheme cs) => Container(
         height: 56,
         width: double.infinity,
-        color: AppColors.surfaceContainerLow,
+        color: cs.surfaceContainerLow,
         child: const Icon(Icons.inventory_2_outlined,
             color: AppColors.onSurfaceVariant, size: 24),
       );
@@ -430,21 +507,22 @@ class _TypingBubbleState extends State<_TypingBubble>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainer,
+          color: cs.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outline),
+          border: Border.all(color: cs.outline),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.smart_toy_outlined,
-                size: 15, color: AppColors.primary),
+            Icon(Icons.smart_toy_outlined,
+                size: 15, color: cs.primary),
             const SizedBox(width: 8),
             AnimatedBuilder(
               animation: _ac,
@@ -457,7 +535,7 @@ class _TypingBubbleState extends State<_TypingBubble>
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.3 + 0.7 * v),
+                      color: cs.primary.withValues(alpha: 0.3 + 0.7 * v),
                       shape: BoxShape.circle,
                     ),
                   );
@@ -487,25 +565,31 @@ class _SuggestionRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: suggestions.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => GestureDetector(
-          onTap: () => onTap(suggestions[i]),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryContainer,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        itemBuilder: (_, i) {
+          final cs = Theme.of(context).colorScheme;
+          return _StaggeredIn(
+            index: i,
+            child: GestureDetector(
+              onTap: () => onTap(suggestions[i]),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  suggestions[i],
+                  style: TextStyle(
+                      color: cs.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500),
+                ),
+              ),
             ),
-            child: Text(
-              suggestions[i],
-              style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500),
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -513,7 +597,7 @@ class _SuggestionRow extends StatelessWidget {
 
 // ── Barra de entrada ──────────────────────────────────────────────────────────
 
-class _InputBar extends StatelessWidget {
+class _InputBar extends StatefulWidget {
   final TextEditingController ctrl;
   final ValueChanged<String> onSend;
   final bool enabled;
@@ -521,12 +605,23 @@ class _InputBar extends StatelessWidget {
       {required this.ctrl, required this.onSend, required this.enabled});
 
   @override
+  State<_InputBar> createState() => _InputBarState();
+}
+
+class _InputBarState extends State<_InputBar> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ctrl = widget.ctrl;
+    final onSend = widget.onSend;
+    final enabled = widget.enabled;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        border: Border(top: BorderSide(color: AppColors.outline)),
+        color: cs.surfaceContainerLow,
+        border: Border(top: BorderSide(color: cs.outline)),
       ),
       child: SafeArea(
         top: false,
@@ -537,7 +632,7 @@ class _InputBar extends StatelessWidget {
                 controller: ctrl,
                 enabled: enabled,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(color: AppColors.onSurface, fontSize: 14),
+                style: TextStyle(color: cs.onSurface, fontSize: 14),
                 decoration: const InputDecoration(
                   hintText: 'Escribe tu pregunta...',
                   border: InputBorder.none,
@@ -555,18 +650,33 @@ class _InputBar extends StatelessWidget {
             const SizedBox(width: 8),
             GestureDetector(
               onTap: enabled ? () => onSend(ctrl.text) : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: enabled ? AppColors.primary : AppColors.outline,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.send_rounded,
-                  color: enabled ? Colors.white : AppColors.onSurfaceVariant,
-                  size: 20,
+              onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+              onTapUp: (_) => setState(() => _pressed = false),
+              onTapCancel: () => setState(() => _pressed = false),
+              child: AnimatedScale(
+                scale: _pressed ? 0.85 : 1.0,
+                duration: const Duration(milliseconds: 100),
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: enabled ? cs.primary : cs.outline,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, anim) =>
+                        ScaleTransition(scale: anim, child: child),
+                    child: Icon(
+                      enabled ? Icons.send_rounded : Icons.more_horiz_rounded,
+                      key: ValueKey(enabled),
+                      color:
+                          enabled ? Colors.white : AppColors.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
                 ),
               ),
             ),
